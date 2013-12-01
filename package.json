@@ -1,0 +1,22 @@
+{
+  "name": "pipeline",
+  "version": "0.0.0",
+  "description": "TODO",
+  "main": "dist/pipeline.min.js",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha --reporter spec"
+  },
+  "author": "Ryan Artecona",
+  "license": "BSD",
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-contrib-uglify": "~0.2.7",
+    "grunt-contrib-jshint": "~0.7.2",
+    "mocha": "~1.14.0",
+    "grunt-mocha-test": "~0.7.0"
+  },
+  "dependencies": {
+    "underscore": "~1.5.2"
+  }
+}
