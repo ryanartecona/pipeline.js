@@ -10,12 +10,15 @@ module.exports = function(grunt) {
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
-    mochaTest: {
-      test: {
-        options: {
-          reporter: 'spec'
-        },
-        src: ['test/*.js']
+    test: {
+      // options: {
+      //   reporter: 'nyan'
+      // },
+      main: {
+        src: ['test/main.js']
+      },
+      promise: {
+        src: ['test/promise.js']
       }
     },
     uglify: {
@@ -51,8 +54,8 @@ module.exports = function(grunt) {
     },
     watch: {
       test: {
-        files: ['src/*.js', 'test/*.js'],
-        tasks: ['mochaTest:test'],
+        files: ['src/*.js', 'test/main.js'],
+        tasks: ['test:main'],
         options: {
           atBegin: true
         }
@@ -65,9 +68,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-mocha-test');
+  grunt.task.renameTask('mochaTest', 'test');
 
   // Default task.
-  grunt.registerTask('test', ['mochaTest']);
-  grunt.registerTask('default', ['mochaTest', 'uglify']);
+  grunt.registerTask('default', ['test:main', 'uglify']);
 
 };

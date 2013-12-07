@@ -1,6 +1,6 @@
 var assert = require('assert')
 var _      = require('underscore')
-
+"use strict";
 
 var Subscriber = function(args){
   this.init(args)
@@ -297,15 +297,112 @@ Pipe.prototype = {
   }
 }
 
-/**
- * Tests
- */
-var log = function() {console.log.apply(console, arguments)}
-var logLines = function() {_.each([].slice.call(arguments), function(x){console.log(x)})}
-var logSection = function(sectionName) {logLines('', '--- '+sectionName+' ---')}
+var Promise = function(/* onSubscribe? */) {
+  this.init(/* onSubscribe? */)
+}
+Promise.prototype = new Pipe()
 
+Promise.statusTypePending   = 1
+Promise.statusTypeFulfilled = 2
+Promise.statusTypeRejected  = 3
+Promise.prototype.status = Promise.statusTypePending
+Promise.prototype.value = null
+Promise.prototype.reason = null
+
+Promise.prototype.init = function(/* onSubscribe? */) {
+  //...
+}
+Promise.prototype.then = function(onFulfilled, onRejected) {
+  var thenPromise = new Promise()
+  var resolveWithHandler = function(handler, value, isFulfillment, resolvingPromise) {
+    var x
+    if (handler instanceof Function) {
+      try {
+        x = handler(value)
+      } catch (e) {
+        resolvingPromise.reject(e)
+        return
+      }
+      resolveToPromise(resolvingPromise, x)
+    } else {
+      resolvingPromise[isFulfillment? 'fulfill': 'reject'](value)
+    }
+  }
+  this.subscribeOn({
+    next: function(v) {
+      resolveWithHandler(onFulfilled, v, true, thenPromise)
+    }
+    ,error: function(r) {
+      resolveWithHandler(onRejected, r, false, thenPromise)
+    }
+  })
+  return thenPromise
+}
+Promise.prototype.sendNext = function(v) {
+  this.status = Promise.statusTypeFulfilled
+  this.value = v
+  Pipe.prototype.sendNext.call(this, v)
+  this.sendDone()
+}
+Promise.prototype.sendError = function(r) {
+  this.status = Promise.statusTypeRejected
+  this.reason = r
+  Pipe.prototype.sendError.call(this, r)
+  this.sendDone()
+}
+Promise.prototype.fulfill = Promise.prototype.sendNext
+Promise.prototype.reject = Promise.prototype.sendError
+function resolveToPromise(promise, x) {
+  // Promise Resolution Procedure ©
+  if (x === promise) {
+    promise.reject(new TypeError('promise cycle detected'))
+    return
+  }
+  if (x instanceof Promise) {
+    // (implementation-specific)
+    // make promise adopt the state of x
+  }
+  if (x instanceof Object) {
+    var then
+    try {
+      then = x.then
+    } catch (e) {
+      promise.reject(e)
+      return
+    }
+    if (then instanceof Function) {
+      var aHandlerHasBeenCalled = false
+      then.call(x,
+        function resolvePromise(y) {
+          if (aHandlerHasBeenCalled) {
+            aHandlerHasBeenCalled = true
+            return
+          }
+          resolveToPromise(promise, y)
+        },
+        function rejectPromise(r) {
+          if (aHandlerHasBeenCalled) {
+            aHandlerHasBeenCalled = true
+            return
+          }
+          promise.reject(r)
+        }
+      )
+    }
+  }
+  promise.fulfill(x)
+}
+
+/**
+ * Utils
+ */
+// var noOp = function(){}t
 
 /**
  * Exports
  */
-module.exports = {Pipe:Pipe, Subscriber:Subscriber}
+module.exports = {
+  Pipe: Pipe
+  ,Subscriber: Subscriber
+  ,Promise: Promise
+}

@@ -14,7 +14,8 @@
     "grunt-contrib-uglify": "~0.2.7",
     "grunt-contrib-jshint": "~0.7.2",
     "mocha": "~1.14.0",
-    "grunt-mocha-test": "~0.7.0"
+    "grunt-mocha-test": "~0.7.0",
+    "promises-aplus-tests": "~2.0.3"
   },
   "dependencies": {
     "underscore": "~1.5.2"

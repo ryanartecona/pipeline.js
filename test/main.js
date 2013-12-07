@@ -1,6 +1,7 @@
-var assert = require('assert');
-var P = require('../src/pipeline');
+var assert = require('assert')
+var P = require('../src/pipeline')
 var Pipe = P.Pipe
+var Promise = P.Promise
 
 describe('Pipe', function(){
 
