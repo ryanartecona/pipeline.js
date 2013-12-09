@@ -4,6 +4,7 @@ var Pipe = P.Pipe
 var Promise = P.Promise
 
 describe('Pipe', function(){
+  // TODO: make default timeout ≈500ms, instead of 2000ms
 
   var assertAccum = function(p, expectAccum, done){
     var accumValues = []
@@ -21,12 +22,13 @@ describe('Pipe', function(){
   }
 
   it('should basically work', function(done){
-    var p1 = new Pipe()
+    var p1 = new Pipe(function(subscriber) {
+      subscriber.onNext(1)
+      subscriber.onNext(2)
+      subscriber.onNext(3)
+      subscriber.onDone()
+    })
     assertAccum(p1, [1,2,3], done)
-    p1.sendNext(1)
-      .sendNext(2)
-      .sendNext(3)
-      .sendDone()
   })
 
   it('#fromArray', function(done){
@@ -37,7 +39,6 @@ describe('Pipe', function(){
   it('@concat', function(done){
     var p1 = new Pipe()
     var p2 = new Pipe()
-    var accValues = []
     assertAccum(p1.concat(p2), [1,2,3], done)
 
     p1.sendNext(1)

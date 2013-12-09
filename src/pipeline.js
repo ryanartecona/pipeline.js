@@ -1,4 +1,5 @@
 var assert = require('assert')
+var work_queue = require('./work_queue')
 var _      = require('underscore')
 "use strict";
 
@@ -72,8 +73,16 @@ Pipe.prototype = {
 
   ,subscribe: function(subscriber) {
     this.subscribers || (this.subscribers = [])
+    assert(subscriber.onNext instanceof Function
+        && subscriber.onError instanceof Function
+        && subscriber.onDone instanceof Function)
     this.subscribers.push(subscriber)
-    this.onSubscribe && this.onSubscribe(subscriber)
+    if (this.onSubscribe) {
+      var thisP = this
+      work_queue.enqueue(function() {
+        thisP.onSubscribe(subscriber)
+      })
+    }
     return this
   }
   ,subscribeOn: function(handlers) {return this.subscribe(new Subscriber(handlers))}
@@ -82,29 +91,50 @@ Pipe.prototype = {
   ,subscribeDone:  function(x) {return this.subscribeOn({done:  x})}
 
   ,sendNext: function(x) {
-    if (this.subscribers) {
-      _.each(this.subscribers, function(subscriber) {
-        subscriber.onNext(x)
-      })
-    }
+    var thisP = this
+    work_queue.enqueue(function() {
+      if (thisP.subscribers) {
+        for (i in thisP.subscribers) {
+          var subscriber = thisP.subscribers[i]
+          subscriber.onNext(x)
+        }
+      }
+    })
     return this
   }
-  ,sendError: function(x) {
-    if (this.subscribers) {
-      _.each(this.subscribers, function(subscriber) {
-        subscriber.onError(x)
-      })
-    }
+  ,sendError: function(e) {
+    // TODO: should this be enqueued, or happen synchronously?
+    var thisP = this
+    work_queue.enqueue(function() {
+      if (thisP.subscribers) {
+        for (i in thisP.subscribers) {
+          var subscriber = thisP.subscribers[i]
+          subscriber.onError(e)
+        }
+      }
+      thisP.isDone = true
+      delete thisP.subscribers
+    })
     return this
   }
   ,sendDone: function() {
-    if (this.subscribers) {
-      _.each(this.subscribers, function(subscriber) {
-        subscriber.onDone()
-      })
+    var thisP = this
+    if (thisP.isDone) {
+      throw new Error(this+' is already done.')
     }
-    this.isDone = true
-    delete this.subscribers
+    work_queue.enqueue(function() {
+      if (thisP.isDone) {
+        throw new Error(this+' is already done.')
+      }
+      if (thisP.subscribers) {
+        for (i in thisP.subscribers) {
+          var subscriber = thisP.subscribers[i]
+          subscriber.onDone()
+        }
+      }
+      thisP.isDone = true
+      delete thisP.subscribers
+    })
     return this
   }
 
@@ -113,10 +143,10 @@ Pipe.prototype = {
     var downstream = new Pipe(function(downstreamSubscriber) {
       upstream.subscribeOn({
         next: function(x) {
-          downstream.sendNext(mapFn(x))
+          downstreamSubscriber.onNext(mapFn(x))
         }
-        ,error: function(e) {downstream.sendError(e)}
-        ,done: function() {downstream.sendDone()}
+        ,error: function(e) {downstreamSubscriber.onError(e)}
+        ,done: function() {downstreamSubscriber.onDone()}
       })
     })
     return downstream
@@ -185,7 +215,7 @@ Pipe.prototype = {
 
   ,concat: function(nextPipe) {
     var prevPipe = this
-    return new Pipe(function(subscriber) {
+    var concatPipe = new Pipe(function(subscriber) {
       prevPipe.subscribeOn({
         next: function(x) {
           subscriber.onNext(x)
@@ -198,6 +228,7 @@ Pipe.prototype = {
         }
       })
     })
+    return concatPipe
   }  
 
   ,filter: function(predicateFn) {
@@ -393,10 +424,6 @@ function resolveToPromise(promise, x) {
   promise.fulfill(x)
 }
 
-/**
- * Utils
- */
-// var noOp = function(){}t
 
 /**
  * Exports
