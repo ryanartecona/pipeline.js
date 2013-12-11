@@ -11,9 +11,10 @@ module.exports = function(grunt) {
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
     test: {
-      // options: {
-      //   reporter: 'nyan'
-      // },
+      options: {
+        reporter: 'dot'
+        ,bail: true
+      },
       main: {
         src: ['test/main.js']
       },
@@ -54,8 +55,8 @@ module.exports = function(grunt) {
     },
     watch: {
       test: {
-        files: ['src/*.js', 'test/main.js'],
-        tasks: ['test:main'],
+        files: ['src/*.js', 'test/*.js'],
+        tasks: ['test'],
         options: {
           atBegin: true
         }

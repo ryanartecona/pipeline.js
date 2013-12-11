@@ -1,7 +1,14 @@
 var assert = require('assert')
 var work_queue = require('./work_queue')
-var _      = require('underscore')
-"use strict";
+"use strict"
+var undefined
+
+var debug_mode = false
+var debug = function debug() {
+  if (debug_mode) {
+    console.log.apply(console, Array.prototype.slice.call(arguments))
+  }
+}
 
 var Subscriber = function(args){
   this.init(args)
@@ -22,7 +29,7 @@ Subscriber.prototype = {
   ,done:  function() {}
   
   // Subscriber interface:
-  //  onNext(v){}, onError(e){}, onDone(){}
+  //  onNext(v), onError(e), onDone()
   ,onNext: function(v) {
     try {
       this.next(v)
@@ -66,23 +73,30 @@ Pipe.fromArray = function(arr) {
 }
 Pipe.prototype = {
   init: function(onSubscribe) {
-    onSubscribe && (this.onSubscribe = onSubscribe)
+    if (onSubscribe instanceof Function) {
+      this.onSubscribe = onSubscribe
+    }
   }
   // default state
   ,isDone: false
+  // default subscription handler
+  ,onSubscribe: function(subscriber) {
+    return subscriber
+  }
 
   ,subscribe: function(subscriber) {
     this.subscribers || (this.subscribers = [])
     assert(subscriber.onNext instanceof Function
         && subscriber.onError instanceof Function
         && subscriber.onDone instanceof Function)
-    this.subscribers.push(subscriber)
-    if (this.onSubscribe) {
-      var thisP = this
-      work_queue.enqueue(function() {
+    var thisP = this
+    work_queue.exec_when_processing_queue(function() {
+      if (thisP.onSubscribe) {
         thisP.onSubscribe(subscriber)
-      })
-    }
+      }
+      thisP.subscribers.push(subscriber)
+      debug('new subscribers on', thisP, ':', thisP.subscribers)
+    })
     return this
   }
   ,subscribeOn: function(handlers) {return this.subscribe(new Subscriber(handlers))}
@@ -90,48 +104,49 @@ Pipe.prototype = {
   ,subscribeError: function(x) {return this.subscribeOn({error: x})}
   ,subscribeDone:  function(x) {return this.subscribeOn({done:  x})}
 
+  ,_broadcastToSubscribers: function(method, arg) {
+    if (this.subscribers) {
+      for (i in this.subscribers) {
+        subscriber = this.subscribers[i]
+        subscriber[method](arg)
+      }
+    }
+  }
   ,sendNext: function(x) {
+    assert(!this.isDone, 'cannot send `next` event on finished Pipe')
     var thisP = this
     work_queue.enqueue(function() {
-      if (thisP.subscribers) {
-        for (i in thisP.subscribers) {
-          var subscriber = thisP.subscribers[i]
-          subscriber.onNext(x)
-        }
+      if (thisP.isDone) {
+        throw new Error(this+' is already done.')
       }
+      debug('broadcasting error on', thisP)
+      thisP._broadcastToSubscribers('onNext', x)
     })
     return this
   }
   ,sendError: function(e) {
+    assert(!this.isDone, 'cannot send `error` event on finished Pipe')
     // TODO: should this be enqueued, or happen synchronously?
     var thisP = this
     work_queue.enqueue(function() {
-      if (thisP.subscribers) {
-        for (i in thisP.subscribers) {
-          var subscriber = thisP.subscribers[i]
-          subscriber.onError(e)
-        }
+      if (thisP.isDone) {
+        throw new Error(this+' is already done.')
       }
+      debug('broadcasting error on', thisP)
+      thisP._broadcastToSubscribers('onError', e)
       thisP.isDone = true
       delete thisP.subscribers
     })
     return this
   }
   ,sendDone: function() {
+    assert(!this.isDone, 'cannot send `done` event on finished Pipe')
     var thisP = this
-    if (thisP.isDone) {
-      throw new Error(this+' is already done.')
-    }
     work_queue.enqueue(function() {
       if (thisP.isDone) {
         throw new Error(this+' is already done.')
       }
-      if (thisP.subscribers) {
-        for (i in thisP.subscribers) {
-          var subscriber = thisP.subscribers[i]
-          subscriber.onDone()
-        }
-      }
+      thisP._broadcastToSubscribers('onDone')
       thisP.isDone = true
       delete thisP.subscribers
     })
@@ -328,34 +343,70 @@ Pipe.prototype = {
   }
 }
 
-var Promise = function(/* onSubscribe? */) {
-  this.init(/* onSubscribe? */)
+var Promise = function() {
+  this.init()
 }
 Promise.prototype = new Pipe()
 
 Promise.statusTypePending   = 1
 Promise.statusTypeFulfilled = 2
 Promise.statusTypeRejected  = 3
-Promise.prototype.status = Promise.statusTypePending
-Promise.prototype.value = null
-Promise.prototype.reason = null
 
-Promise.prototype.init = function(/* onSubscribe? */) {
-  //...
+Promise.fulfilled = function(value) {
+  var p = new Promise()
+  p.status = Promise.statusTypeFulfilled
+  p.value = value
+  return p
+}
+Promise.rejected = function(reason) {
+  var p = new Promise()
+  p.status = Promise.statusTypeRejected
+  p.reason = reason
+  return p
+}
+
+Promise.prototype.status = Promise.statusTypePending
+Promise.prototype.value = undefined
+Promise.prototype.reason = undefined
+
+Promise.prototype.init = function() {}
+
+Promise.prototype.subscribe = function(subscriber) {
+  var thisP = this
+  debug('scheduling subscriber', subscriber, 'on', this)
+  work_queue.exec_when_processing_queue(function() {
+    debug('subscribing subscriber', subscriber, 'to', thisP)
+    if (thisP.status === Promise.statusTypePending) {
+      Pipe.prototype.subscribe.call(thisP, subscriber)
+      debug('subscribed', subscriber, 'to', thisP)
+    } else if (thisP.status === Promise.statusTypeFulfilled) {
+      work_queue.enqueue(function() {
+        subscriber.onNext(thisP.value)
+      })
+    } else if (thisP.status === Promise.statusTypeRejected) {
+      work_queue.enqueue(function() {
+        subscriber.onError(thisP.reason)
+      })
+    }
+  })
+  return this
 }
 Promise.prototype.then = function(onFulfilled, onRejected) {
   var thenPromise = new Promise()
   var resolveWithHandler = function(handler, value, isFulfillment, resolvingPromise) {
     var x
-    if (handler instanceof Function) {
+    if (typeof handler === 'function') {
       try {
         x = handler(value)
       } catch (e) {
+        debug('rejecting promise', resolvingPromise, 'with', e)
         resolvingPromise.reject(e)
         return
       }
-      resolveToPromise(resolvingPromise, x)
+      debug('resolving promise', resolvingPromise, 'with', x)
+      resolvingPromise.resolve(x)
     } else {
+      debug('scheduling to ' + (isFulfillment? 'fullfill value': 'reject with reason'), value)
       resolvingPromise[isFulfillment? 'fulfill': 'reject'](value)
     }
   }
@@ -370,20 +421,42 @@ Promise.prototype.then = function(onFulfilled, onRejected) {
   return thenPromise
 }
 Promise.prototype.sendNext = function(v) {
-  this.status = Promise.statusTypeFulfilled
-  this.value = v
-  Pipe.prototype.sendNext.call(this, v)
-  this.sendDone()
+  assert(this.status === Promise.statusTypePending, 'can only fulfill a pending Promise')
+  var thisP = this
+  work_queue.enqueue(function() {
+    if (thisP.status === Promise.statusTypePending) {
+      debug('fulfilling', thisP, 'with', v)
+      thisP.status = Promise.statusTypeFulfilled
+      thisP.value = v
+      thisP._broadcastToSubscribers('onNext', v)
+      thisP.isDone = true
+      thisP._broadcastToSubscribers('onDone')
+      delete thisP.subscribers
+    }
+  })
 }
 Promise.prototype.sendError = function(r) {
-  this.status = Promise.statusTypeRejected
-  this.reason = r
-  Pipe.prototype.sendError.call(this, r)
-  this.sendDone()
+  assert(this.status === Promise.statusTypePending, 'can only reject a pending Promise')
+  var thisP = this
+  work_queue.enqueue(function() {
+    if (thisP.status === Promise.statusTypePending) {
+      debug('rejecting', thisP, 'with', r)
+      thisP.status = Promise.statusTypeRejected
+      thisP.reason = r
+      thisP._broadcastToSubscribers('onError', r)
+      thisP.isDone = true
+      thisP._broadcastToSubscribers('onDone')
+      delete thisP.subscribers
+    }
+  })
 }
-Promise.prototype.fulfill = Promise.prototype.sendNext
-Promise.prototype.reject = Promise.prototype.sendError
-function resolveToPromise(promise, x) {
+Promise.prototype.sendDone = function() {
+  assert(this.status !== Promise.statusTypePending && !this.isDone
+        ,'can only finish a fulfilled or rejected Promise')
+  Pipe.prototype.sendDone.call(this)
+}
+var resolveToPromise = function resolveToPromise(promise, x) {
+  assert(promise.status = Promise.statusTypePending, 'can only resolve a pending Promise')
   // Promise Resolution Procedure ©
   if (x === promise) {
     promise.reject(new TypeError('promise cycle detected'))
@@ -393,7 +466,7 @@ function resolveToPromise(promise, x) {
     // (implementation-specific)
     // make promise adopt the state of x
   }
-  if (x instanceof Object) {
+  if (x === Object(x) /* x is an Object */) {
     var then
     try {
       then = x.then
@@ -401,27 +474,45 @@ function resolveToPromise(promise, x) {
       promise.reject(e)
       return
     }
-    if (then instanceof Function) {
+    if (typeof then === 'function') {
       var aHandlerHasBeenCalled = false
-      then.call(x,
-        function resolvePromise(y) {
-          if (aHandlerHasBeenCalled) {
+      try {
+        then.call(x,
+          function resolvePromise(y) {
+            if (aHandlerHasBeenCalled) {
+              return
+            }
             aHandlerHasBeenCalled = true
-            return
-          }
-          resolveToPromise(promise, y)
-        },
-        function rejectPromise(r) {
-          if (aHandlerHasBeenCalled) {
+            try {
+              resolveToPromise(promise, y)
+            } catch (e) {}
+          },
+          function rejectPromise(r) {
+            if (aHandlerHasBeenCalled) {
+              return
+            }
             aHandlerHasBeenCalled = true
-            return
+            try {
+              promise.reject(r)
+            } catch (e) {}
           }
-          promise.reject(r)
-        }
-      )
+        )
+      } catch (e) {
+        work_queue.enqueue(function() {
+          if (!aHandlerHasBeenCalled) {
+            promise.reject(e)
+          }
+        })
+      }
+      return
     }
   }
   promise.fulfill(x)
+}
+Promise.prototype.fulfill = Promise.prototype.sendNext
+Promise.prototype.reject = Promise.prototype.sendError
+Promise.prototype.resolve = function(x) {
+  resolveToPromise(this, x)
 }
 
 

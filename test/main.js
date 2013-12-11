@@ -4,7 +4,7 @@ var Pipe = P.Pipe
 var Promise = P.Promise
 
 describe('Pipe', function(){
-  // TODO: make default timeout ≈500ms, instead of 2000ms
+  this.timeout(500 /* ms */)
 
   var assertAccum = function(p, expectAccum, done){
     var accumValues = []
