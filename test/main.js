@@ -1,7 +1,8 @@
 var assert = require('assert')
-var P = require('../src/pipeline')
-var Pipe = P.Pipe
-var Promise = P.Promise
+var PL = require('../src/pipeline')
+var Pipe = PL.Pipe
+var Inlet = PL.Inlet
+var Promise = PL.Promise
 
 describe('Pipe', function(){
   this.timeout(500 /* ms */)
@@ -11,7 +12,7 @@ describe('Pipe', function(){
     var accumulate = function(v){
       accumValues.push(v)
     }
-    p.subscribeOn({
+    p.on({
       next: accumulate
       ,error: done
       ,done: function(){
@@ -22,11 +23,11 @@ describe('Pipe', function(){
   }
 
   it('should basically work', function(done){
-    var p1 = new Pipe(function(subscriber) {
-      subscriber.onNext(1)
-      subscriber.onNext(2)
-      subscriber.onNext(3)
-      subscriber.onDone()
+    var p1 = new Pipe(function(outlet) {
+      outlet.sendNext(1)
+      outlet.sendNext(2)
+      outlet.sendNext(3)
+      outlet.sendDone()
     })
     assertAccum(p1, [1,2,3], done)
   })
@@ -37,8 +38,8 @@ describe('Pipe', function(){
   })
 
   it('@concat', function(done){
-    var p1 = new Pipe()
-    var p2 = new Pipe()
+    var p1 = new Inlet()
+    var p2 = new Inlet()
     assertAccum(p1.concat(p2), [1,2,3], done)
 
     p1.sendNext(1)
@@ -52,7 +53,7 @@ describe('Pipe', function(){
   it('@filter', function(done){
     var p = Pipe.fromArray([1,2,3,4,5,6])
       .filter(function(x){
-        return !(x % 2) // evens
+        return (x % 2) === 0 // evens
       })
     assertAccum(p, [2,4,6], done)
   })
@@ -94,9 +95,9 @@ describe('Pipe', function(){
 
   it('errors out', function(done){
     var pBroken = new Pipe(function(sub){
-      sub.onError(new Error('broken!'))
+      sub.sendError(new Error('broken!'))
     })
-    pBroken.subscribeError(function(e){
+    pBroken.onError(function(e){
       assert.equal(e.message, 'broken!')
       done()
     })

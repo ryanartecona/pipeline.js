@@ -12,8 +12,8 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 6.  Subject                Inlet              Lead
 7.  ReplaySubject          HistoryInlet       CacheLead
 8.  MulticastConnection    BranchPipe         SplitterWire
-9.  --Promise--            Promise/Singlet?   Promise/?
-10. Disposable             Tap?               Contact
+9.  --Promise--            Promise            Promise
+10. Disposable             Tap                Contact
 ```
 
  1. Project name
