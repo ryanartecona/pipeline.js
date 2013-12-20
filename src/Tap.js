@@ -19,9 +19,15 @@ Tap.prototype.init = function(detacher) {
 }
 Tap.prototype.detach = function() {
   var self = this
-  work_queue.exec_when_processing_queue(function() {
-    self.detachHandler()
-  })
+  if (!self.isDetached) {
+    work_queue.exec_when_processing_queue(function() {
+      if (!self.isDetached) {
+        self.detachHandler()
+        self.isDetached = true
+        delete self.detachHandler
+      }
+    })
+  }
 }
 
 
