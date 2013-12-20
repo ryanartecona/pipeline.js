@@ -19,6 +19,16 @@ describe('Pipe', function(){
     _.assertAccum(p1, [1,2,3], done)
   })
 
+  it('#empty', function(done){
+    var pe = Pipe.empty()
+    _.assertAccum(pe, [], done)
+  })
+
+  it('#return', function(done){
+    var pr = Pipe.return(true)
+    _.assertAccum(pr, [true], done)
+  })
+
   it('#fromArray', function(done){
     var p = Pipe.fromArray([1,2,3])
     _.assertAccum(p, [1,2,3], done)
@@ -73,7 +83,7 @@ describe('Pipe', function(){
     _.assertAccum(p_digits, [4,5,6,7], done)
   })
 
-  it('errors out', function(done){
+  it('sends an error', function(done){
     var pBroken = new Pipe(function(sub){
       sub.sendError(new Error('broken!'))
     })

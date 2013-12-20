@@ -1,6 +1,5 @@
-pipeline.js
------------
+# pipeline.js
 
-An implementation of functional-reactive programming in JavaScript.
+An aspiring implementation of functional-reactive programming in JavaScript, inspired by Rx and ReactiveCocoa.
 
 TODO: real docs :)
