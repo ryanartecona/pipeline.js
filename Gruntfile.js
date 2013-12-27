@@ -19,7 +19,7 @@ module.exports = function(grunt) {
         src: ['test/main.js']
       },
       promise: {
-        src: ['test/promise.js']
+        src: ['test/promise-a+.js']
       }
     },
     uglify: {
