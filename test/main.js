@@ -1,1 +1,2 @@
 require('./pipe')
+require('./inlet')
