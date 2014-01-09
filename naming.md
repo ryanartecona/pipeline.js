@@ -32,11 +32,11 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 
  6. A Signal to which values can be sent manually, exposed as a Subscriber interface on itself.
 
- 7. A Subject that caches the values it receives (up to a set capacity), and sends cached values immediately upon subscription.
+ 7. A Subject that caches the values it receives (up to a set capacity), and sends cached values immediately upon subscription. Afterward, sends values to existing subcribers as they are received like a normal Subject.
 
- 8. A Signal that proxies a Signal through an internal subscriber which guarantees that the proxied Signal will not be subscribed to more than once between all the subscriptions that the proxying (multicasting) Signal receives. Good for managing a side-effecting Signal.
+ 8. A proxy to a Signal which allows multiple downstream Subscribers to "share" a single subscription to the proxied Signal. Guarantees only a single subscription is made on the proxied signal. A MulticastConnection exposes a new Signal which can be subscribed to as many times as needed. Useful for ensuring subscription side effects or expensive work happen at most once.
 
- 9. This is effectively a ReplaySubject with capacity 1 which finishes after the first value received. Similar to Rx's AsyncSubject, except an AsyncSubject accepts multiple values and only publishes the last received upon completion, where a Promise only allows a single value to even be received (called "resolution"). RACPromise has been removed from RAC, but a JS implementation basically *must* include a Promise.
+ 9. This is effectively a ReplaySubject with capacity 1 which finishes after the first value received. Similar to Rx's AsyncSubject, except an AsyncSubject accepts multiple values and only publishes the last value received upon completion, where a Promise only allows a single value to ever be received (called "resolution"). RACPromise has been removed from RAC, but a JS implementation basically *must* include a Promise.
 
  10. A handle on a subscription which when disposed removes the subscription and cleans up resources.
 
