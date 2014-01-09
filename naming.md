@@ -12,7 +12,7 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 6.  Subject                Inlet              Lead
 7.  ReplaySubject          HistoryInlet       CacheLead
 8.  MulticastConnection    BranchPipe         SplitterWire
-9.  --Promise--            Promise            Promise
+9.  ~~Promise~~            Promise            Promise
 10. Disposable             Tap                Contact
 ```
 
@@ -32,6 +32,16 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 
  8. A Signal that proxies a Signal through an internal subscriber which guarantees that the proxied Signal will not be subscribed to more than once between all the subscriptions that the proxying (multicasting) Signal receives. Good for managing a side-effecting Signal.
 
- 9. Effectively a ReplaySubject with capacity 1 which finishes after the first value received.
+ 9. This is effectively a ReplaySubject with capacity 1 which finishes after the first value received. Similar to Rx's AsyncSubject, except an AsyncSubject accepts multiple values and only publishes the last received upon completion, where a Promise only allows a single value to even be received (called "resolution"). RACPromise has been removed from RAC, but a JS implementation basically *must* include a Promise.
 
  10. A handle on a subscription which when destroyed removes the subscription.
+
+### Mappings from other Rx/RAC classes:
+```
+ReplaySubject        =>  HistoryInlet
+BehaviorSubject      =>  CurrentInlet
+AsyncSubject         =>  ≈Promise
+CompoundDisposable   =>  MultiTap
+SerialDisposable     =>  ___Tap (unsure if needed)
+MulticastConnection  =>  SharedOutlet
+```
