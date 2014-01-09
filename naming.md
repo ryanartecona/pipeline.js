@@ -11,9 +11,13 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 5.  Sequence               -                  -
 6.  Subject                Inlet              Lead
 7.  ReplaySubject          HistoryInlet       CacheLead
-8.  MulticastConnection    BranchPipe         SplitterWire
+8.  MulticastConnection    SharedPipe         SplitterWire
 9.  ~~Promise~~            Promise            Promise
 10. Disposable             Tap                Contact
+11. BehaviorSubject        ?                  ?
+12. AsyncSubject           ≈Promise           ≈Promise
+13. CompoundDisposable     MultiTap           ?
+14. SerialDisposable       ? (needed?)        ?
 ```
 
  1. Project name
@@ -34,14 +38,12 @@ I want to get the terminology right, so to strike a balance (if one exists) betw
 
  9. This is effectively a ReplaySubject with capacity 1 which finishes after the first value received. Similar to Rx's AsyncSubject, except an AsyncSubject accepts multiple values and only publishes the last received upon completion, where a Promise only allows a single value to even be received (called "resolution"). RACPromise has been removed from RAC, but a JS implementation basically *must* include a Promise.
 
- 10. A handle on a subscription which when destroyed removes the subscription.
+ 10. A handle on a subscription which when disposed removes the subscription and cleans up resources.
 
-### Mappings from other Rx/RAC classes:
-```
-ReplaySubject        =>  HistoryInlet
-BehaviorSubject      =>  CurrentInlet
-AsyncSubject         =>  ≈Promise
-CompoundDisposable   =>  MultiTap
-SerialDisposable     =>  ___Tap (unsure if needed)
-MulticastConnection  =>  SharedOutlet
-```
+ 11. Useful to model properties that always have some current value. This is effectively a ReplaySubject of capacity 1 which requires an initial replay value at creation. The current replay value is sent immediately upon each new subscription, hence "property".
+
+ 12. An AsyncSubject in Rx allows multiple values to be received before sending any. Upon completion, the subject will send only the last received value. This is very similar in purpose to, and consequently superceded by, Promise.
+
+ 13. A collection of Disposables which when disposed will dispose of all Disposables that have been added to it.
+
+ 14. A wrapper around a single underlying Disposable which allows new Disposables to be (atomically) swapped in (effectively a reference to a Disposable which can itself be disposed). Once the SerialDisposable is disposed, any new Disposable will be disposed immediately upon swapping in.
