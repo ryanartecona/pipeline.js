@@ -11,11 +11,10 @@ Tap.prototype.isDetached = false
 // default handler
 Tap.prototype.detachHandler = function() {}
 
-Tap.prototype.init = function(detacher) {
-  if (typeof detacher !== 'undefined') {
-    assert(typeof detacher === 'function', 'Tap can only be constructed with a detachment handler function.')
-    this.detachHandler = detacher
-  }
+Tap.prototype.init = function(detachHandler) {
+  if (typeof detachHandler === 'undefined') return
+  assert(typeof detachHandler === 'function', 'Tap can only be constructed with a detachment handler function.')
+  this.detachHandler = detachHandler
 }
 Tap.prototype.detach = function() {
   var self = this
