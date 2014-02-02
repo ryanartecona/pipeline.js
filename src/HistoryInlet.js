@@ -13,27 +13,16 @@ HistoryInlet.prototype = new Inlet()
 
 HistoryInlet.prototype.capacity = undefined
 
+HistoryInlet.prototype._hasSavedError = false
 HistoryInlet.prototype._savedError = undefined
 HistoryInlet.prototype._savedValues = undefined
-HistoryInlet.prototype._oldestSavedValueIndex = 0
 HistoryInlet.prototype._saveNextValue = function(v) {
-  if (this.capacity <= 0) return
-  if (this.isDone || typeof this._savedError !== 'undefined') return
-  this._savedValues || this._savedValues = []
-  this._savedValues[this._oldestSavedValueIndex] = v
-  this._oldestSavedValueIndex = (this._oldestSavedValueIndex + 1) % this.capacity
-}
-HistoryInlet.prototype._valuesToReplay = function() {
-  // cycle through the savedValues ring buffer,
-  // starting at the oldest value index, and return an array
-  if (this.capacity <= 0 || typeof this._savedValues === 'undefined') return
-  var vs = new Array(this._savedValues.length)
-  var i = this._oldestSavedValueIndex % this._savedValues.length
-  for (var j = 0; j < this._savedValues.length; j++) {
-    vs[j] = this._savedValues[i]
-    i = (i + 1) % this._savedValues.length 
+  if (this.isDone || this._hasSavedError) return
+  this._savedValues || (this._savedValues = [])
+  this._savedValues.push(v)
+  if (this.capacity && this._savedValues.length > this.capacity) {
+    this._savedValues.shift()
   }
-  return vs
 }
 // override sendNext to save the newest value,
 // and drop the oldest if at full capacity
@@ -59,6 +48,7 @@ HistoryInlet.prototype.sendError = function(e) {
       throw new Error(this+' is already done.')
     }
     thisP.isDone = true
+    thisP._hasSavedError = true
     thisP._savedError = e
     thisP._broadcastToOutlets('sendError', e)
     delete thisP.outlets
@@ -71,12 +61,12 @@ HistoryInlet.prototype.attachOutlet = function(outlet) {
   var thisP = this
   work_queue.exec_when_processing_queue(function() {
     var wasDone = thisP.isDone
-    var hadError = typeof thisP._savedError !== 'undefined'
+    var hadError = thisP._hasSavedError
     var hadSavedValues = !!thisP._savedValues
     if (wasDone || hadSavedValues) {
       work_queue.enqueue(function() {
         if (hadSavedValues) {
-          var vs = thisP._valuesToReplay()
+          var vs = thisP._savedValues
           for (i in vs) {
             outlet.sendNext(vs[i])
           }
@@ -95,3 +85,6 @@ HistoryInlet.prototype.attachOutlet = function(outlet) {
   })
   return this
 }
+
+
+module.exports = HistoryInlet
