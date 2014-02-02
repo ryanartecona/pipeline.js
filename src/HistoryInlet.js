@@ -31,7 +31,7 @@ HistoryInlet.prototype.sendNext = function(v) {
   var thisP = this
   work_queue.enqueue(function() {
     if (thisP.isDone) {
-      throw new Error(this+' is already done.')
+      throw new Error(thisP+' is already done.')
     }
     thisP._saveNextValue(v)
     thisP._broadcastToOutlets('sendNext', v)
@@ -45,7 +45,7 @@ HistoryInlet.prototype.sendError = function(e) {
   var thisP = this
   work_queue.enqueue(function() {
     if (thisP.isDone) {
-      throw new Error(this+' is already done.')
+      throw new Error(thisP+' is already done.')
     }
     thisP.isDone = true
     thisP._hasSavedError = true
