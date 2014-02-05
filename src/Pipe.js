@@ -28,6 +28,11 @@ Pipe.fromArray = function(arr) {
     outlet.sendDone()
   })
 }
+Pipe.of = function(/*args...*/) {
+  args = [].slice.call(arguments)
+  return Pipe.fromArray(args)
+}
+
 Pipe.prototype = {
   init: function(onSubscribe) {
     if (onSubscribe instanceof Function) {
@@ -258,5 +263,5 @@ Pipe.prototype = {
   }
 }
 
-module.exports = Pipe
 
+module.exports = Pipe

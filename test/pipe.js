@@ -34,6 +34,15 @@ describe('Pipe', function(){
     _.assertAccum(p, [1,2,3], done)
   })
 
+  describe('#of', function() {
+    it('should behave like #return with one arg', function(done) {
+      _.assertAccum(new Pipe.of(1), [1], done)
+    })
+    it('should behave like #fromArray with multiple args', function(done) {
+      _.assertAccum(new Pipe.of(1, 2, 3), [1, 2, 3], done)
+    })
+  })
+
   it('@concat', function(done){
     var p1 = new Pipe.fromArray([1,2])
     var p2 = new Pipe.fromArray([3])
