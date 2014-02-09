@@ -1,6 +1,5 @@
 var assert = require('assert')
 var Pipe = require('./Pipe')
-var work_queue = require('./work_queue')
 
 
 var Inlet = function() {
@@ -8,42 +7,32 @@ var Inlet = function() {
 }
 Inlet.prototype = new Pipe()
 
+Inlet.prototype.attachOutlet = function(outlet) {
+  assert(typeof outlet.sendNext === 'function'
+      && typeof outlet.sendError === 'function'
+      && typeof outlet.sendDone === 'function')
+  this.outlets || (this.outlets = [])
+  this.outlets.push(outlet)
+  return this
+}
+
 Inlet.prototype.sendNext = function(x) {
   assert(!this.isDone, 'cannot send `next` event on finished Pipe')
-  var thisP = this
-  work_queue.enqueue(function() {
-    if (thisP.isDone) {
-      throw new Error(this+' is already done.')
-    }
-    thisP._broadcastToOutlets('sendNext', x)
-  })
+  this._broadcastToOutlets('sendNext', x)
   return this
 }
 Inlet.prototype.sendError = function(e) {
   assert(!this.isDone, 'cannot send `error` event on finished Pipe')
-  // TODO: should this be enqueued, or happen synchronously?
-  var thisP = this
-  work_queue.enqueue(function() {
-    if (thisP.isDone) {
-      throw new Error(this+' is already done.')
-    }
-    thisP._broadcastToOutlets('sendError', e)
-    thisP.isDone = true
-    delete thisP.outlets
-  })
+  this._broadcastToOutlets('sendError', e)
+  this.isDone = true
+  delete this.outlets
   return this
 }
 Inlet.prototype.sendDone = function() {
   assert(!this.isDone, 'cannot send `done` event on finished Pipe')
-  var thisP = this
-  work_queue.enqueue(function() {
-    if (thisP.isDone) {
-      throw new Error(this+' is already done.')
-    }
-    thisP._broadcastToOutlets('sendDone')
-    thisP.isDone = true
-    delete thisP.outlets
-  })
+  this._broadcastToOutlets('sendDone')
+  this.isDone = true
+  delete this.outlets
   return this
 }
 

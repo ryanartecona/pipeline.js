@@ -1,13 +1,15 @@
 var assert = require('assert')
 var Outlet = require('./Outlet')
-var work_queue = require('./work_queue')
+var schedulers = require('./schedulers')
+var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = require('./utils')
+
 "use strict"
 var undefined
 
 
-var Pipe = function(onSubscribe) {
-  this.init(onSubscribe)
+var Pipe = function(onAttach) {
+  this.init(onAttach)
 }
 Pipe.empty = function() {
   return new Pipe(function(outlet) {
@@ -34,27 +36,27 @@ Pipe.of = function(/*args...*/) {
 }
 
 Pipe.prototype = {
-  init: function(onSubscribe) {
-    if (onSubscribe instanceof Function) {
-      this.onSubscribe = onSubscribe
+  init: function(onAttach) {
+    if (onAttach instanceof Function) {
+      this.onAttach = onAttach
     }
   }
   // default state
   ,isDone: false
   // default subscription handler
-  ,onSubscribe: function(outlet) {
+  ,onAttach: function(outlet) {
     return outlet
   }
 
   ,attachOutlet: function(outlet) {
-    this.outlets || (this.outlets = [])
     assert(typeof outlet.sendNext === 'function'
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
+    this.outlets || (this.outlets = [])
     var thisP = this
-    work_queue.exec_when_processing_queue(function() {
-      if (thisP.onSubscribe) {
-        thisP.onSubscribe(outlet)
+    AttachmentScheduler.schedule(function() {
+      if (thisP.onAttach) {
+        thisP.onAttach(outlet)
       }
       thisP.outlets.push(outlet)
     })

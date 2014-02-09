@@ -1,9 +1,8 @@
 var assert = require('assert')
-var work_queue = require('./work_queue')
 
 
-var Tap = function(detacher) {
-  this.init(detacher)
+var Tap = function(detachHandler) {
+  this.init(detachHandler)
 }
 
 // default state
@@ -17,15 +16,10 @@ Tap.prototype.init = function(detachHandler) {
   this.detachHandler = detachHandler
 }
 Tap.prototype.detach = function() {
-  var self = this
-  if (!self.isDetached) {
-    work_queue.exec_when_processing_queue(function() {
-      if (!self.isDetached) {
-        self.detachHandler()
-        self.isDetached = true
-        delete self.detachHandler
-      }
-    })
+  if (!this.isDetached) {
+    this.detachHandler()
+    this.isDetached = true
+    delete this.detachHandler
   }
 }
 

@@ -1,6 +1,8 @@
 var assert = require('assert')
 var Pipe = require('./Pipe')
-var work_queue = require('./work_queue')
+var schedulers = require('./schedulers')
+var AttachmentScheduler = schedulers.AttachmentScheduler
+var AsyncScheduler = schedulers.AsyncScheduler
 
 "use strict"
 var undefined
@@ -36,15 +38,15 @@ Promise.prototype.init = function() {}
 
 Promise.prototype.attachOutlet = function(outlet) {
   var thisP = this
-  work_queue.exec_when_processing_queue(function() {
+  AttachmentScheduler.schedule(function() {
     if (thisP.status === Promise.statusTypePending) {
       Pipe.prototype.attachOutlet.call(thisP, outlet)
     } else if (thisP.status === Promise.statusTypeFulfilled) {
-      work_queue.enqueue(function() {
+      AsyncScheduler.schedule(function() {
         outlet.sendNext(thisP.value)
       })
     } else if (thisP.status === Promise.statusTypeRejected) {
-      work_queue.enqueue(function() {
+      AsyncScheduler.schedule(function() {
         outlet.sendError(thisP.reason)
       })
     }
@@ -80,7 +82,7 @@ Promise.prototype.then = function(onFulfilled, onRejected) {
 Promise.prototype.sendNext = function(v) {
   assert(this.status === Promise.statusTypePending, 'can only fulfill a pending Promise')
   var thisP = this
-  work_queue.enqueue(function() {
+  AsyncScheduler.schedule(function() {
     if (thisP.status === Promise.statusTypePending) {
       thisP.status = Promise.statusTypeFulfilled
       thisP.value = v
@@ -94,7 +96,7 @@ Promise.prototype.sendNext = function(v) {
 Promise.prototype.sendError = function(r) {
   assert(this.status === Promise.statusTypePending, 'can only reject a pending Promise')
   var thisP = this
-  work_queue.enqueue(function() {
+  AsyncScheduler.schedule(function() {
     if (thisP.status === Promise.statusTypePending) {
       thisP.status = Promise.statusTypeRejected
       thisP.reason = r
@@ -153,7 +155,7 @@ var resolveToPromise = function resolveToPromise(promise, x) {
           }
         )
       } catch (e) {
-        work_queue.enqueue(function() {
+        AsyncScheduler.schedule(function() {
           if (!aHandlerHasBeenCalled) {
             promise.reject(e)
           }

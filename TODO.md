@@ -6,11 +6,11 @@ TODO
   - Event class to represent next/error/done events
   - PropertyInlet
   - Scheduler replace work_queue
-    - SyncScheduler
-    - AsyncScheduler
+    - SyncScheduler [done]
+    - AsyncScheduler [done]
       - with autodetecting async method for exec env
         (see Bluebird's impl)
-    - AttachmentScheduler (private)
+    - AttachmentScheduler (private) [done]
     - CurrentScheduler (?)
   - Refactor to reduce sendNext/sendError/sendDone/attachOutlet code dupe
   - SharedPipe

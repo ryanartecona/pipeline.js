@@ -34,12 +34,10 @@ describe('Inlet', function() {
       }
     })
     this.inlet.sendError('yay error!')
-    this.inlet.sendDone()
   })
 
   it('should finish immediately', function(done) {
     _.assertAccum(this.inlet, [], done)
     this.inlet.sendDone()
-    this.inlet.sendNext('poop')
   })
 })
