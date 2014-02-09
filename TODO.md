@@ -26,7 +26,7 @@ TODO
 
 ## Ideas:
   - A+ compliant Promise with monadic interface
-  - Automaticly track important properties on Pipe, e.g.
+  - Automatically track important properties on Pipe, e.g.
     - will it finish? yes/no/maybe
     - value(s) sent on attachment? yes/no
     - side effects? no/maybe
