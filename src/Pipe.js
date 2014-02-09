@@ -71,7 +71,11 @@ Pipe.prototype = {
     if (this.outlets) {
       for (i in this.outlets) {
         outlet = this.outlets[i]
-        outlet[method](arg)
+        try {
+          outlet[method](arg)
+        } catch (e) {
+          // TODO: handle outlet errors
+        }
       }
     }
   }
