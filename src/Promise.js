@@ -100,9 +100,8 @@ Promise.prototype.sendError = function(r) {
     if (thisP.status === Promise.statusTypePending) {
       thisP.status = Promise.statusTypeRejected
       thisP.reason = r
-      thisP._broadcastToOutlets('sendError', r)
       thisP.isDone = true
-      thisP._broadcastToOutlets('sendDone')
+      thisP._broadcastToOutlets('sendError', r)
       delete thisP.outlets
     }
   })
