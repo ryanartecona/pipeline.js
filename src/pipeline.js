@@ -15,4 +15,5 @@ module.exports = {
   ,AsyncScheduler: schedulers.AsyncScheduler
   // ,AttachmentScheduler: schedulers.AttachmentScheduler // TODO: remove
   ,currentScheduler: schedulers.currentScheduler
+  ,schedule: schedulers.schedule
 }

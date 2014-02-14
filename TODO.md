@@ -23,6 +23,7 @@ TODO
       - If so, what to call cancellable subscription handles?
         Tap/Coupling/Subscription
     - Or fall back to RAC names? (Signal et al.)
+  - How to expose a scheduling API (see src/schedulers)
 
 ## Ideas:
   - A+ compliant Promise with monadic interface

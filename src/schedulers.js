@@ -18,16 +18,20 @@ var currentScheduler = function() {
   return _current || SyncScheduler
 }
 
-var withCurrentScheduler = function(scheduler, userFn) {
+var schedule = function(jobFn) {
+  currentScheduler().schedule(jobFn)
+}
+
+var withCurrentScheduler = function(scheduler, jobFn) {
   if (_current === scheduler) {
-    userFn()
+    jobFn()
     return
   }
   else {
     prevScheduler = _current
     _current = scheduler
     try {
-      userFn()
+      jobFn()
     }
     finally {
       _current = prevScheduler
@@ -94,7 +98,8 @@ var AttachmentScheduler = {
 }
 
 module.exports = {
-  currentScheduler: currentScheduler
+  schedule: schedule
+  ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
   ,AttachmentScheduler: AttachmentScheduler
