@@ -15,6 +15,7 @@ TODO
   - Refactor to reduce sendNext/sendError/sendDone/attachOutlet code dupe [done?]
   - SharedPipe
   - Make a browser build
+    - Include an in-browser test runner
   - Populate important RAC/Rx combinators
 
 ## Decisions:
