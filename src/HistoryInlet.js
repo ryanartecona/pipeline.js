@@ -9,6 +9,7 @@ var HistoryInlet = function(capacity) {
   if (typeof capacity === 'undefined') capacity = 0
   assert(typeof capacity === 'number' && capacity >= 0, 'HistoryInlet can only be constructed with an integer capacity.')
   this.capacity = Math.floor(capacity)
+  return this
 }
 HistoryInlet.prototype = new Inlet()
 
