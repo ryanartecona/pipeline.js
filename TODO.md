@@ -14,6 +14,7 @@ TODO
     - CurrentScheduler (?)
   - Refactor to reduce sendNext/sendError/sendDone/attachOutlet code dupe
   - SharedPipe
+  - Make a browser build
 
 ## Decisions:
   - How to handle/propagate errors?
@@ -24,6 +25,8 @@ TODO
         Tap/Coupling/Subscription
     - Or fall back to RAC names? (Signal et al.)
   - How to expose a scheduling API (see src/schedulers)
+  - Clean API for different merge strategies
+    - mergeMap/concatMap & mergeJoin/concatJoin?
 
 ## Ideas:
   - A+ compliant Promise with monadic interface
