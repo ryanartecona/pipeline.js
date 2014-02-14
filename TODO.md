@@ -4,7 +4,7 @@ TODO
 ## Tasks:
   - Support outlet detachment
   - Event class to represent next/error/done events
-  - PropertyInlet
+  - PropertyInlet [done]
   - Scheduler replace work_queue
     - SyncScheduler [done]
     - AsyncScheduler [done]
@@ -12,9 +12,10 @@ TODO
         (see Bluebird's impl)
     - AttachmentScheduler (private) [done]
     - CurrentScheduler (?)
-  - Refactor to reduce sendNext/sendError/sendDone/attachOutlet code dupe
+  - Refactor to reduce sendNext/sendError/sendDone/attachOutlet code dupe [done?]
   - SharedPipe
   - Make a browser build
+  - Populate important RAC/Rx combinators
 
 ## Decisions:
   - How to handle/propagate errors?
