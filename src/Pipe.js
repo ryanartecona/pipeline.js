@@ -43,10 +43,8 @@ Pipe.prototype = {
   }
   // default state
   ,isDone: false
-  // default subscription handler
-  ,onAttach: function(outlet) {
-    return outlet
-  }
+  // user attachment handler
+  ,onAttach: undefined
 
   ,attachOutlet: function(outlet) {
     assert(typeof outlet.sendNext === 'function'
@@ -154,10 +152,11 @@ Pipe.prototype = {
     return downstream
   }
 
-  ,concat: function(nextPipe) {
-    var prevPipe = this
+  ,concat: function(nextPipe1, nextPipe2, nextPipeN) {
+    var firstPipe = this
+    var nextPipes = [].slice.call(arguments)
     var concatPipe = new Pipe(function(outlet) {
-      prevPipe.on({
+      firstPipe.on({
         next: function(x) {
           outlet.sendNext(x)
         },
@@ -165,7 +164,11 @@ Pipe.prototype = {
           outlet.sendError(e)
         },
         done: function() {
-          nextPipe.attachOutlet(outlet)
+          if (nextPipes.length) {
+            (nextPipes.shift()).attachOutlet(outlet)
+          } else {
+            outlet.sendDone()
+          }
         }
       })
     })
@@ -245,7 +248,7 @@ Pipe.prototype = {
     var adjacentPipes = [].slice.call(arguments)
     adjacentPipes.unshift(this)
     return new Pipe(function(outlet) {
-      var activeAdjacentPipes = adjacentPipes
+      var activeAdjacentPipes = adjacentPipes.slice()
       for (var i = 0; i < adjacentPipes.length; i++) {
         (function(i) {
           var thisAdjacentPipe = adjacentPipes[i]
