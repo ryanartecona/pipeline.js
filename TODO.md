@@ -33,6 +33,7 @@ TODO
 ## Ideas:
   - A+ compliant Promise with monadic interface
   - A debug mode that captures & extends stack traces
+  - Backpressure!
   - Automatically track important properties on Pipe, e.g.
     - will it finish? yes/no/maybe
     - value(s) sent on attachment? yes/no
