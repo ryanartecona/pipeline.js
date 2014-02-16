@@ -96,9 +96,14 @@ describe('Pipe', function(){
     var pBroken = new Pipe(function(sub){
       sub.sendError(new Error('broken!'))
     })
-    pBroken.onError(function(e){
-      assert.equal(e.message, 'broken!')
-      done()
+    pBroken.on({
+      error: function(e){
+        assert.equal(e.message, 'broken!')
+        done()
+      }
+      ,done: function() {
+        done('no done event should be sent!')
+      }
     })
   })
 })
