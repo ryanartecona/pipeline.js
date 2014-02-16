@@ -50,6 +50,7 @@ Pipe.prototype = {
     assert(typeof outlet.sendNext === 'function'
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
+    assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
     this.outlets || (this.outlets = [])
     var thisP = this
     AttachmentScheduler.schedule(function() {
