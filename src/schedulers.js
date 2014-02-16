@@ -80,7 +80,25 @@ var AsyncScheduler = (function() {
   //    - script readystatechanged
   //    - setTimeout
   var _schedule_later = (function() {
-    return process.nextTick
+    if (typeof process !== 'undefined'
+      && typeof process.nextTick === 'undefined')
+    {
+      return process.nextTick
+    }
+    else if (typeof setImmediate === 'function')
+    {
+      return setImmediate
+    }
+    else if (typeof setTimeout === 'function')
+    {
+      return function (jobFn) {
+        setTimeout(jobFn, 1)
+      }
+    }
+    else
+    {
+      throw new Exception('this environment does not have a supported method of asynchronously scheduling a function invocation')
+    }
   })()
 
   return {
