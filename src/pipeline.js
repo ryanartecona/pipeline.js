@@ -1,6 +1,7 @@
 var Pipe = require('./Pipe')
 var Inlet = require('./Inlet')
 var HistoryInlet = require('./HistoryInlet')
+var PropertyInlet = require('./PropertyInlet')
 var Outlet = require('./Outlet')
 var Promise = require('./Promise')
 var schedulers = require('./schedulers')
@@ -9,6 +10,7 @@ module.exports = {
   Pipe: Pipe
   ,Inlet: Inlet
   ,HistoryInlet: HistoryInlet
+  ,PropertyInlet: PropertyInlet
   ,Outlet: Outlet
   ,Promise: Promise
   ,SyncScheduler: schedulers.SyncScheduler

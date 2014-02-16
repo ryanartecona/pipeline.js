@@ -13,16 +13,23 @@ var PropertyInlet = function(initialValue) {
 }
 PropertyInlet.prototype = new Inlet()
 
-PropertyInlet.prototype.currentValue = undefined
+PropertyInlet.prototype._currentValue = undefined
+PropertyInlet.prototype.currentValue = function() {
+  return this._currentValue
+}
 
 PropertyInlet.prototype.sendNext = function(v) {
   assert(!this.isDone, 'cannot send `next` event on finished Pipe')
-  this.currentValue = v
+  this._currentValue = v
   this._broadcastToOutlets('sendNext', v)
   return this
 }
-PropertyInlet.prototype.onAttach = function(outlet) {
-  outlet.sendNext(this.currentValue)
+PropertyInlet.prototype.attachOutlet = function(outlet) {
+  Inlet.prototype.attachOutlet.call(this, outlet)
+  var thisP = this
+  AttachmentScheduler.schedule(function() {
+    outlet.sendNext(thisP._currentValue)
+  })
 }
 
 
