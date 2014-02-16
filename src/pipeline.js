@@ -4,6 +4,8 @@ var HistoryInlet = require('./HistoryInlet')
 var PropertyInlet = require('./PropertyInlet')
 var Outlet = require('./Outlet')
 var Promise = require('./Promise')
+var Bond = require('./Bond')
+var MultiBond = require('./MultiBond')
 var schedulers = require('./schedulers')
 
 module.exports = {
@@ -13,6 +15,8 @@ module.exports = {
   ,PropertyInlet: PropertyInlet
   ,Outlet: Outlet
   ,Promise: Promise
+  ,Bond: Bond
+  ,MultiBond: MultiBond
   ,SyncScheduler: schedulers.SyncScheduler
   ,AsyncScheduler: schedulers.AsyncScheduler
   // ,AttachmentScheduler: schedulers.AttachmentScheduler // TODO: remove
