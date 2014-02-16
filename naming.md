@@ -1,23 +1,23 @@
 Naming in FRP is Difficult
 --------------------------
 
-I want to get the terminology right, so to strike a balance (if one exists) between approachability for JavaScript devs, and clearly defined and distinguished semantics for advanced use. I want to map the terminology onto a domain more readily familiar, less burdened by clashes with existing concepts, and more indicative of each class's role than a straight port of Signal/Subscriber/Subject/Disposable (RAC) or Observable/Observer/Subject/Subscription (RxJava). I will use the core of ReactiveCocoa as a reference point.
+I want to get the terminology right, so to strike a balance (if one exists) between approachability for JavaScript devs, and clearly defined and distinguished semantics for advanced use. I want to map the terminology onto a domain more readily familiar, less burdened by clashes with existing concepts, and more indicative of each class's role than a straight port of Signal/Subscriber/Subject/Disposable (RAC) or Observable/Observer/Subject/Subscription (RxJS). I will use the core of ReactiveCocoa as a reference point.
 
 ```
-1.  ReactiveCocoa          Pipeline           Breadboard
-2.  Stream                 -                  -
-3.  Subscriber             Outlet             Terminal
-4.  Signal                 Pipe               Wire
-5.  Sequence               -                  -
-6.  Subject                Inlet              Lead
-7.  ReplaySubject          HistoryInlet       CacheLead
-8.  MulticastConnection    SharedPipe         SplitterWire
-9.  ~~Promise~~            Promise            Promise
-10. Disposable             Tap                Contact
-11. BehaviorSubject        ?                  ?
-12. AsyncSubject           ≈Promise           ≈Promise
-13. CompoundDisposable     MultiTap           ?
-14. SerialDisposable       ? (needed?)        ?
+1.  ReactiveCocoa          Pipeline
+2.  Stream                 -
+3.  Subscriber             Outlet
+4.  Signal                 Pipe
+5.  Sequence               -
+6.  Subject                Inlet
+7.  ReplaySubject          HistoryInlet
+8.  MulticastConnection    SharedPipe
+9.  ~~Promise~~            Promise
+10. Disposable             Bond
+11. BehaviorSubject        ?
+12. AsyncSubject           ≈Promise
+13. CompoundDisposable     MultiBond
+14. SerialDisposable       ? (needed?)
 ```
 
  1. Project name

@@ -24,14 +24,15 @@ TODO
   - [ ] Include AsyncInlet?
     - thinking of renaming Promise to APlusPromise, and including a
       Promise/Future/Singlet that's just HistoryInlet(1).take(1) 
-  - [ ] Nomenclature
+  - [x] Nomenclature
     - Go with 'Pipe' analogies? leaning: yes
       - If so, what to call cancellable subscription handles?
-        Tap/Coupling/Subscription
+        Tap/Coupling/Subscription/Bond? leaning: 'Bond'
     - Or fall back to RAC names? (Signal et al.)
   - [ ] How to expose a scheduling API (see src/schedulers)
   - [ ] Clean API for different merge/join strategies
     - [ ] mergeMap/concatMap & mergeJoin/concatJoin?
+  - [ ] Rename HistoryInlet to BufferInlet or CacheInlet?
 
 ## Ideas:
   - A+ compliant Promise *with* monadic interface
