@@ -11,6 +11,8 @@ TODO
       - [ ] with autodetecting async method for exec env
         (see Bluebird's impl)
     - [x] AttachmentScheduler (private)
+      - [ ] Figure out if AttachmentScheduler is even necessary,
+            or just use currentScheduler()
   - [x] Refactor to reduce send*/attachOutlet code dupe
   - [ ] SharedPipe
   - [ ] Make a browser build
