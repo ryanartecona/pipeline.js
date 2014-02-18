@@ -67,6 +67,27 @@ describe('HistoryInlet', function() {
         }
       })
     })
+
+    it('can cancel between sent values', function(done) {
+      var receivedValues = []
+      var bond = this.historyInlet.on({
+        next: function(v) {
+          receivedValues.push(v)
+        }
+        ,error: done
+        ,done: function() {
+          done('should not be reached')
+        }
+      })
+
+      this.historyInlet.sendNext(1)
+      this.historyInlet.sendNext(2)
+      bond.break()
+      this.historyInlet.sendNext(3)
+      this.historyInlet.sendDone()
+      assert.deepEqual(receivedValues, [1, 2])
+      done()
+    })
   })
 
   describe('with an unlimited capacity', function() {

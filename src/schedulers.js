@@ -111,7 +111,7 @@ var AsyncScheduler = (function() {
 
 var AttachmentScheduler = {
   schedule: function(jobFn) {
-    _current === AsyncScheduler 
+    typeof _current !== 'undefined' 
       ? jobFn()
       : AsyncScheduler.schedule(jobFn)
     // jobFn()

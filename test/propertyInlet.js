@@ -1,12 +1,11 @@
 var assert = require('assert')
 var PL = require('../src/pipeline')
-// var AttachmentScheduler = require('../src/schedulers').AttachmentScheduler
 var _ = require('./utils')
 
 describe('PropertyInlet', function() {
   this.timeout(500 /* ms */)
 
-  describe('given no initial value', function() {
+  describe('(given no initial value)', function() {
 
     beforeEach(function() {
       this.propertyInlet = new PL.PropertyInlet()
@@ -52,6 +51,22 @@ describe('PropertyInlet', function() {
       catch (e) {
         done()
       }
+    })
+
+    describe('outlet attachment', function() {
+      describe('cancellation', function() {
+
+        it('can happen after the first `next` event is sent', function(done) {
+          var prop = new PL.PropertyInlet(1)
+          var bond = prop.on({error: done, done: done, next: function(v) {
+            if (v === 1) done()
+            else done('next should only be sent once')
+          }})
+          bond.break()
+          prop.sendNext(2)
+          prop.sendDone()
+        })
+      })
     })
   })
 })

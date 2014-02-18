@@ -32,7 +32,6 @@ HistoryInlet.prototype.sendNext = function(v) {
   assert(!this.isDone, 'cannot send `next` event on finished Pipe')
   this._saveNextValue(v)
   this._broadcastToOutlets('sendNext', v)
-  return this
 }
 // override sendError to save the error to send after replayed values
 HistoryInlet.prototype.sendError = function(e) {
@@ -42,28 +41,24 @@ HistoryInlet.prototype.sendError = function(e) {
   this._savedError = e
   this._broadcastToOutlets('sendError', e)
   delete this.outlets
-  return this
 }
 // override attachOutlet to send savedValues on subscription,
 // then send error (if one is saved) or done (if finished)
 HistoryInlet.prototype.attachOutlet = function(outlet) {
-  var thisP = this
-  AttachmentScheduler.schedule(function() {
-    var vs = thisP._savedValues
-    if (vs) {
-      for (i in vs) {
-        outlet.sendNext(vs[i])
-      }
+  var vs = this._savedValues
+  if (vs && vs.length) {
+    for (i in vs) {
+      outlet.sendNext(vs[i])
     }
-    if (thisP._hasSavedError) {
-      outlet.sendError(thisP._savedError)
-    } else if (thisP.isDone) {
-      outlet.sendDone()
-    } else {
-      Inlet.prototype.attachOutlet.call(thisP, outlet)
-    }
-  })
-  return this
+  }
+  if (this._hasSavedError) {
+    outlet.sendError(this._savedError)
+  } else if (this.isDone) {
+    outlet.sendDone()
+  } else {
+    var attachmentBond = Inlet.prototype.attachOutlet.call(this, outlet)
+  }
+  return attachmentBond
 }
 
 

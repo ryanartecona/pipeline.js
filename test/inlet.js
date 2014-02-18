@@ -42,21 +42,37 @@ describe('Inlet', function() {
   })
 
   describe('attached outlet', function() {
+    describe('cancellation', function() {
 
-    it('can cancel reception of values', function(done) {
-      var bond = this.inlet.on({
-        next: function(v) {
-          done()
-          bond.break()
-        }
-        ,done: function() {
-          done('done event should never be received')
-        }
+      it('can happen after values have been sent', function(done) {
+        var bond = this.inlet.on({
+          next: function(v) {
+            done()
+          }
+          ,done: function() {
+            done('done event should never be received')
+          }
+        })
+        this.inlet.sendNext(1)
+        bond.break()
+        this.inlet.sendNext(2)
+        this.inlet.sendDone()
       })
-      this.inlet.sendNext(1)
-      bond.break()
-      this.inlet.sendNext(2)
-      this.inlet.sendDone()
+
+      it('can happen within an event handler', function(done) {
+        var bond = this.inlet.on({
+          next: function(v) {
+            done()
+            bond.break()
+          }
+          ,done: function() {
+            done('done event should never be received')
+          }
+        })
+        this.inlet.sendNext(1)
+        this.inlet.sendNext(2)
+        this.inlet.sendDone()
+      })
     })
   })
 })
