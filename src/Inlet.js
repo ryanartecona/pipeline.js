@@ -21,24 +21,21 @@ Inlet.prototype.attachOutlet = function(outlet) {
   })
 }
 
-Inlet.prototype.sendNext = function(x) {
+Inlet.prototype.sendNext = function(v) {
   assert(!this.isDone, 'cannot send next event on finished Pipe')
-  this._broadcastToOutlets('sendNext', x)
-  return this
+  this._broadcastToOutlets('sendNext', v)
 }
 Inlet.prototype.sendError = function(e) {
   assert(!this.isDone, 'cannot send error event on finished Pipe')
   this.isDone = true
   this._broadcastToOutlets('sendError', e)
   delete this.outlets
-  return this
 }
 Inlet.prototype.sendDone = function() {
   assert(!this.isDone, 'cannot send done event on finished Pipe')
   this.isDone = true
   this._broadcastToOutlets('sendDone')
   delete this.outlets
-  return this
 }
 
 

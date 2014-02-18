@@ -61,7 +61,7 @@ Promise.prototype.attachOutlet = function(outlet) {
       })
     }
   })
-  return this
+  return multiBond
 }
 Promise.prototype.then = function(onFulfilled, onRejected) {
   var thenPromise = new Promise()

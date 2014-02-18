@@ -111,20 +111,21 @@ describe('Pipe', function(){
       var pEmpty = new Pipe(function(outlet) {
         outlet.sendDone()
       })
+      // `done` event is the only one called without an argument
       pEmpty.on({next: done, error: done, done: done})
     })
 
     describe('cancellation', function() {
 
       it('can happen immediately', function(done) {
-        var pipe = new Pipe.of(1, 2, 3)
+        var pipe = Pipe.of(1, 2, 3)
         var bond = pipe.on({next: done, error: done, done: done})
         bond.break()
         done()
       })
 
       it('can happen within the `next` handler', function(done) {
-        var pipe = new Pipe.of(1, 2, 3)
+        var pipe = Pipe.of(1, 2, 3)
         var bond = pipe.on({
           next: function(v) {
             done()
