@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pipeline.js ⟚ Simple Example</title>
+
+  <script src="../dist/pipeline.js"></script>
+
+  <script>
+    document.onreadystatechange = function() {
+      if (document.readyState !== 'interactive') return
+
+      var clicksListElem = document.getElementById('clicks-list');
+
+      var bodyClicks = window.bodyClicks = new PL.Inlet();
+      document.addEventListener('mouseup', function(event) {
+        bodyClicks.sendNext(event);
+      });
+
+
+      bodyClicks.onNext(function(event) {
+        // display the click coordinates in the list
+        var newClickItem = document.createElement('li');
+        newClickItem.textContent = 'new click at coordinates ['+event.clientX+', '+event.clientY+']';
+        clicksListElem.appendChild(newClickItem)
+
+        // log the event for console inspection
+        console.log('new click:', event)
+      });
+    }
+  </script>
+</head>
+<body>
+  <h1>Pipeline.js ⟚ Simple Example</h1>
+  <p>
+    <small>(open your console)</small>
+  </p>
+  <ul id="clicks-list"></ul>
+</body>
+</html>
