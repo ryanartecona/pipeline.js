@@ -10,13 +10,6 @@ describe('PropertyInlet', function() {
 
     beforeEach(function() {
       this.propertyInlet = new PL.PropertyInlet()
-
-      // this.finishPropertyInlet = function() {
-      //   var thisTest = this
-      //   AttachmentScheduler.schedule(function () {
-      //     thisTest.propertyInlet.sendDone()
-      //   })
-      // }
     })
 
     it('sends `undefined` on attachment before being sent anything', function(done) {

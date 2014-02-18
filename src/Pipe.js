@@ -1,5 +1,8 @@
 var assert = require('assert')
 var Outlet = require('./Outlet')
+var Bond = require('./Bond')
+var MultiBond = require('./MultiBond')
+var ProxyOutlet = require('./ProxyOutlet')
 var schedulers = require('./schedulers')
 var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = require('./utils')
@@ -37,7 +40,7 @@ Pipe.of = function(/*args...*/) {
 
 Pipe.prototype = {
   init: function(onAttach) {
-    if (onAttach instanceof Function) {
+    if (typeof onAttach === 'function') {
       this.onAttach = onAttach
     }
   }
@@ -51,21 +54,47 @@ Pipe.prototype = {
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
     assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
+
     this.outlets || (this.outlets = [])
     var thisP = this
-    AttachmentScheduler.schedule(function() {
-      if (thisP.onAttach) {
-        thisP.onAttach(outlet)
-      }
-      thisP.outlets.push(outlet)
-    })
-    return this
-  }
-  ,on: function(handlers) {return this.attachOutlet(new Outlet(handlers))}
-  ,onNext:  function(x) {return this.on({next:  x})}
-  ,onError: function(x) {return this.on({error: x})}
-  ,onDone:  function(x) {return this.on({done:  x})}
+    var multiBond = new MultiBond()
+    var proxyOutlet = new ProxyOutlet(outlet, multiBond)
 
+    AttachmentScheduler.schedule(function() {
+      if (multiBond.isBroken) return
+      if (thisP.onAttach) {
+        var innerBond = thisP.onAttach(proxyOutlet)
+        if (innerBond instanceof Bond) {
+          multiBond.addBond(innerBond)
+        }
+      }
+
+      if (multiBond.isBroken) return
+      thisP.outlets || (this.outlets = [])
+      thisP.outlets.push(proxyOutlet)
+      multiBond.addBond(new Bond(function() {
+        thisP._detachOutlet(proxyOutlet)
+      }))
+    })
+
+    return multiBond
+  }
+
+  ,on: function(handlers) {return this.attachOutlet(new Outlet(handlers))}
+  ,onNext:  function(handler) {return this.on({next:  handler})}
+  ,onError: function(handler) {return this.on({error: handler})}
+  ,onDone:  function(handler) {return this.on({done:  handler})}
+
+  ,_detachOutlet: function(outletToDetach) {
+    if (!this.outlets) return
+    // search from newest to oldest outlets
+    for (var i = this.outlets.length; i >= 0; i--) {
+      if (this.outlets[i] === outletToDetach) {
+        this.outlets.splice(i, 1)
+        break;
+      }
+    }
+  }
   ,_broadcastToOutlets: function(method, arg) {
     if (this.outlets) {
       for (i in this.outlets) {
@@ -269,6 +298,29 @@ Pipe.prototype = {
           })
         })(i)
       }
+    })
+  }
+
+  ,deliverOn: function(scheduler) {
+    var thisP = this
+    return new Pipe(function(outlet) {
+      return thisP.on({
+        next: function(v) {
+          scheduler.schedule(function() {
+            outlet.sendNext(v)
+          })
+        }
+        ,error: function(e) {
+          scheduler.schedule(function() {
+            outlet.sendError(e)
+          })
+        }
+        ,done: function() {
+          scheduler.schedule(function() {
+            outlet.sendDone()
+          })
+        }
+      })
     })
   }
 }

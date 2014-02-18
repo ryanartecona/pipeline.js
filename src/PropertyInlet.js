@@ -27,9 +27,9 @@ PropertyInlet.prototype.sendNext = function(v) {
 PropertyInlet.prototype.attachOutlet = function(outlet) {
   Inlet.prototype.attachOutlet.call(this, outlet)
   var thisP = this
-  AttachmentScheduler.schedule(function() {
+  // AttachmentScheduler.schedule(function() {
     outlet.sendNext(thisP._currentValue)
-  })
+  // })
 }
 
 

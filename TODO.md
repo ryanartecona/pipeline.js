@@ -3,6 +3,8 @@ TODO
 
 ## Tasks:
   - [ ] Support outlet detachment
+    - [x] Pipe
+    - [ ] Inlet + subclasses
   - [ ] Event class to represent next/error/done events
   - [x] PropertyInlet
   - [ ] Scheduler replace work_queue

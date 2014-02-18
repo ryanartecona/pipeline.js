@@ -1,5 +1,7 @@
 var assert = require('assert')
 var Pipe = require('./Pipe')
+var MultiBond = require('./MultiBond')
+var Bond = require('./Bond')
 var schedulers = require('./schedulers')
 var AttachmentScheduler = schedulers.AttachmentScheduler
 var AsyncScheduler = schedulers.AsyncScheduler
@@ -38,15 +40,23 @@ Promise.prototype.init = function() {}
 
 Promise.prototype.attachOutlet = function(outlet) {
   var thisP = this
+  var multiBond = new MultiBond()
   AttachmentScheduler.schedule(function() {
+    if (multiBond.isBroken) return
     if (thisP.status === Promise.statusTypePending) {
-      Pipe.prototype.attachOutlet.call(thisP, outlet)
+      thisP.outlets || (thisP.outlets = [])
+      thisP.outlets.push(outlet)
+      multiBond.addBond(new Bond(function() {
+        thisP._detachOutlet(outlet)
+      }))
     } else if (thisP.status === Promise.statusTypeFulfilled) {
       AsyncScheduler.schedule(function() {
+        if (multiBond.isBroken) return
         outlet.sendNext(thisP.value)
       })
     } else if (thisP.status === Promise.statusTypeRejected) {
       AsyncScheduler.schedule(function() {
+        if (multiBond.isBroken) return
         outlet.sendError(thisP.reason)
       })
     }

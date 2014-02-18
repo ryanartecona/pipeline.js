@@ -1,41 +1,57 @@
 var assert = require('assert')
+var Bond = require('./Bond')
+var MultiBond = require('./MultiBond')
 
 
-var Outlet = function(args){
-  this.init(args)
+var Outlet = function(handlers){
+  this.init(handlers)
 }
 Outlet.prototype = {
-  init: function(args) {
-    assert(args.next || args.done || args.error)
-    args.next  && (this.next  = args.next)
-    args.error && (this.error = args.error)
-    args.done  && (this.done  = args.done)
-    return this
+  init: function(handlers) {
+    var nextIsFunction = typeof handlers.next === 'function'
+    var errorIsFunction = typeof handlers.error === 'function'
+    var doneIsFunction = typeof handlers.done === 'function'
+    
+    assert(nextIsFunction || errorIsFunction || doneIsFunction)
+
+    nextIsFunction && (this._nextHandler  = handlers.next)
+    errorIsFunction && (this._errorHandler = handlers.error)
+    doneIsFunction && (this._doneHandler  = handlers.done)
+
+    var thisOutlet = this
+    this._bond = new MultiBond([new Bond(function() {
+      delete thisOutlet._nextHandler
+      delete thisOutlet._errorHandler
+      delete thisOutlet._doneHandler
+    })])
   }
 
-  // stub functions, overwritten by 
+  // noop default handlers, overwritten by 
   // constructor args when supplied
-  ,next:  function(v) {}
-  ,error: function(e) {}
-  ,done:  function() {}
+  ,_nextHandler:  function(v) {}
+  ,_errorHandler: function(e) {}
+  ,_doneHandler:  function() {}
   
   // Outlet interface:
   //  sendNext(v), sendError(e), sendDone()
   ,sendNext: function(v) {
-    try {
-      this.next(v)
-    } catch (e) {
-      this.sendError(e)
-    }
+    this._nextHandler.call(null, v)
   }
   ,sendError: function(e) {
-    var maybeV = this.error(e)
-    if (typeof maybeV != "undefined") {
-      this.sendNext(maybeV)
-    }
+    if (!this.hasOwnProperty('_errorHandler')) return
+    var errorHandler = this._errorHandler
+    this._bond.break()
+    errorHandler(e)
   }
   ,sendDone: function() {
-    this.done()
+    if (!this.hasOwnProperty('_doneHandler')) return
+    var doneHandler = this._doneHandler
+    this._bond.break()
+    doneHandler()
+  }
+
+  ,attachedWithBond: function(newBond) {
+    this._bond.addBond(newBond)
   }
 }
 

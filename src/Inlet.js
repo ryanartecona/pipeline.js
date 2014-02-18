@@ -1,5 +1,6 @@
 var assert = require('assert')
 var Pipe = require('./Pipe')
+var Bond = require('./Bond')
 
 
 var Inlet = function() {
@@ -14,7 +15,10 @@ Inlet.prototype.attachOutlet = function(outlet) {
   assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
   this.outlets || (this.outlets = [])
   this.outlets.push(outlet)
-  return this
+  var thisInlet = this
+  return new Bond(function() {
+    thisInlet._detachOutlet(outlet)
+  })
 }
 
 Inlet.prototype.sendNext = function(x) {
@@ -24,15 +28,15 @@ Inlet.prototype.sendNext = function(x) {
 }
 Inlet.prototype.sendError = function(e) {
   assert(!this.isDone, 'cannot send error event on finished Pipe')
-  this._broadcastToOutlets('sendError', e)
   this.isDone = true
+  this._broadcastToOutlets('sendError', e)
   delete this.outlets
   return this
 }
 Inlet.prototype.sendDone = function() {
   assert(!this.isDone, 'cannot send done event on finished Pipe')
-  this._broadcastToOutlets('sendDone')
   this.isDone = true
+  this._broadcastToOutlets('sendDone')
   delete this.outlets
   return this
 }

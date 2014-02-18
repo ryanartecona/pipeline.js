@@ -1,8 +1,6 @@
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var Pipe = PL.Pipe
-var Inlet = PL.Inlet
-var Promise = PL.Promise
 var _ = require('./utils')
 
 describe('Pipe', function(){
@@ -66,17 +64,17 @@ describe('Pipe', function(){
   })
 
   it('@skip', function(done){
-    var p_digits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
+    var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .skip(5)
-    _.assertAccum(p_digits, [5,6,7,8,9], done)
+    _.assertAccum(pDigits, [5,6,7,8,9], done)
   })
   it('@take', function(done){
-    var p_digits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
+    var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .take(5)
-    _.assertAccum(p_digits, [0,1,2,3,4], done)
+    _.assertAccum(pDigits, [0,1,2,3,4], done)
   })
   it('@takeUntil', function(done){
-    var p_digits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
+    var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .skip(4)
       .takeUntil((function() {
         var initialVal;
@@ -89,21 +87,57 @@ describe('Pipe', function(){
           return x >= (2 * initialVal)
         }
       })())
-    _.assertAccum(p_digits, [4,5,6,7], done)
+    _.assertAccum(pDigits, [4,5,6,7], done)
   })
 
-  it('sends an error', function(done){
-    var pBroken = new Pipe(function(sub){
-      sub.sendError(new Error('broken!'))
+  describe('attached outlet', function() {
+
+    it('receives an error', function(done) {
+      var pBroken = new Pipe(function(outlet) {
+        outlet.sendError(new Error('broken!'))
+      })
+      pBroken.on({
+        error: function(e){
+          assert.equal(e.message, 'broken!')
+          done()
+        }
+        ,done: function() {
+          done('no done event should be sent!')
+        }
+      })
     })
-    pBroken.on({
-      error: function(e){
-        assert.equal(e.message, 'broken!')
+
+    it('receives a done event', function(done) {
+      var pEmpty = new Pipe(function(outlet) {
+        outlet.sendDone()
+      })
+      pEmpty.on({next: done, error: done, done: done})
+    })
+
+    describe('cancellation', function() {
+
+      it('can happen immediately', function(done) {
+        var pipe = new Pipe.of(1, 2, 3)
+        var bond = pipe.on({next: done, error: done, done: done})
+        bond.break()
         done()
-      }
-      ,done: function() {
-        done('no done event should be sent!')
-      }
+      })
+
+      it('can happen within the `next` handler', function(done) {
+        var pipe = new Pipe.of(1, 2, 3)
+        var bond = pipe.on({
+          next: function(v) {
+            done()
+            bond.break()
+          }
+          ,error: function(e) {
+            done('error should never be received')
+          }
+          ,done: function() {
+            done('done should never be received')
+          }
+        })
+      })
     })
   })
 })

@@ -2,7 +2,7 @@ var P = require('../src/pipeline')
 
 
 describe("Promises/A+ Tests", function() {
-  this.timeout(1000)
+  this.timeout(500)
   
   require('promises-aplus-tests').mocha({
     deferred: function() {

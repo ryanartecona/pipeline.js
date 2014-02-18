@@ -40,4 +40,23 @@ describe('Inlet', function() {
     _.assertAccum(this.inlet, [], done)
     this.inlet.sendDone()
   })
+
+  describe('attached outlet', function() {
+
+    it('can cancel reception of values', function(done) {
+      var bond = this.inlet.on({
+        next: function(v) {
+          done()
+          bond.break()
+        }
+        ,done: function() {
+          done('done event should never be received')
+        }
+      })
+      this.inlet.sendNext(1)
+      bond.break()
+      this.inlet.sendNext(2)
+      this.inlet.sendDone()
+    })
+  })
 })

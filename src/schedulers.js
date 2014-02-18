@@ -111,8 +111,10 @@ var AsyncScheduler = (function() {
 
 var AttachmentScheduler = {
   schedule: function(jobFn) {
-    // _current ? jobFn() : AsyncScheduler.schedule(jobFn)
-    jobFn()
+    _current === AsyncScheduler 
+      ? jobFn()
+      : AsyncScheduler.schedule(jobFn)
+    // jobFn()
   }
 }
 

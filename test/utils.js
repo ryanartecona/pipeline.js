@@ -1,7 +1,7 @@
 var assert = require('assert')
 
 
-var assertAccum = function(p, expectAccum, done){
+var assertAccum = function(p, expectedValues, done){
   var accumValues = []
   var accumulate = function(v){
     accumValues.push(v)
@@ -10,7 +10,7 @@ var assertAccum = function(p, expectAccum, done){
     next: accumulate
     ,error: done
     ,done: function(){
-      assert.deepEqual(expectAccum, accumValues)
+      assert.deepEqual(expectedValues, accumValues)
       done()
     }
   })
