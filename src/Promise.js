@@ -1,4 +1,4 @@
-var assert = require('assert')
+var assert = require('./assert')
 var Pipe = require('./Pipe')
 var MultiBond = require('./MultiBond')
 var Bond = require('./Bond')

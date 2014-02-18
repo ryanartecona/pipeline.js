@@ -5,7 +5,7 @@ module.exports = function(grunt) {
   grunt.initConfig({
     // Metadata.
     pkg: grunt.file.readJSON('package.json'),
-    banner: '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
+    banner: '/*! <%= pkg.name %> - v<%= pkg.version %> - ' +
       '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
       '<%= pkg.homepage ? "* " + pkg.homepage + "\\n" : "" %>' +
       '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
@@ -27,8 +27,26 @@ module.exports = function(grunt) {
         banner: '<%= banner %>'
       },
       dist: {
-        src: 'src/<%= pkg.name %>.js',
-        dest: 'dist/<%= pkg.name %>.min.js'
+        src: 'dist/pipeline.js',
+        dest: 'dist/pipeline.min.js'
+      }
+    },
+    requirejs: {
+      options: {
+        cjsTranslate: true,
+        optimize: 'none',
+        baseUrl: 'src',
+        name: '../node_modules/almond/almond',
+        wrap: {
+          startFile: 'build/export-start.fragment.js',
+          endFile: 'build/export-end.fragment.js'
+        }
+      },
+      main: {
+        options: {
+          include: 'pipeline',
+          out: 'dist/pipeline.js'
+        }
       }
     },
     jshint: {
@@ -54,12 +72,16 @@ module.exports = function(grunt) {
       },
     },
     watch: {
+      options: {
+        atBegin: true
+      },
       test: {
         files: ['src/*.js', 'test/*.js'],
-        tasks: ['test'],
-        options: {
-          atBegin: true
-        }
+        tasks: ['test']
+      },
+      build: {
+        files: ['src/*.js'],
+        tasks: ['build']
       }
     }
   });
@@ -68,10 +90,14 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-mocha-test');
+
   grunt.task.renameTask('mochaTest', 'test');
 
   // Default task.
-  grunt.registerTask('default', ['test:main', 'uglify']);
+  grunt.registerTask('default', ['test:main', 'jshint', 'build']);
+  // Task to run r.js optimizer, concat, and minify to a single file
+  grunt.registerTask('build', ['requirejs', 'uglify'])
 
 };

@@ -1,13 +1,21 @@
 {
   "name": "pipeline",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "TODO",
   "main": "dist/pipeline.min.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha"
   },
-  "author": "Ryan Artecona",
-  "license": "BSD",
+  "author": {
+    "name": "Ryan Artecona",
+    "email": "ryanartecona@gmail.com"
+  },
+  "licenses": [
+    {
+      "type": "BSD-3-Clause",
+      "url": "https://github.com/ryanartecona/pipeline/blob/master/LICENSE"
+    }
+  ],
   "devDependencies": {
     "grunt": "~0.4.2",
     "grunt-contrib-watch": "~0.5.3",
@@ -15,7 +23,10 @@
     "grunt-contrib-jshint": "~0.7.2",
     "mocha": "~1.14.0",
     "grunt-mocha-test": "~0.7.0",
-    "promises-aplus-tests": "~2.0.3"
+    "promises-aplus-tests": "~2.0.3",
+    "grunt-contrib-requirejs": "~0.4.1",
+    "almond": "~0.2.9"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "private": true
 }

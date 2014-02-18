@@ -19,7 +19,33 @@ module.exports = {
   ,MultiBond: MultiBond
   ,SyncScheduler: schedulers.SyncScheduler
   ,AsyncScheduler: schedulers.AsyncScheduler
-  // ,AttachmentScheduler: schedulers.AttachmentScheduler // TODO: remove
   ,currentScheduler: schedulers.currentScheduler
   ,schedule: schedulers.schedule
 }
+
+// define([
+//     'Pipe'
+//     ,'Inlet'
+//     ,'HistoryInlet'
+//     ,'PropertyInlet'
+//     ,'Outlet'
+//     ,'Promise'
+//     ,'Bond'
+//     ,'MultiBond'
+//     ,'schedulers'
+//   ], function(Pipe, Inlet, HistoryInlet, PropertyInlet, Outlet, Promise, Bond, MultiBond, schedulers) {
+//     return {
+//       Pipe: Pipe
+//       ,Inlet: Inlet
+//       ,HistoryInlet: HistoryInlet
+//       ,PropertyInlet: PropertyInlet
+//       ,Outlet: Outlet
+//       ,Promise: Promise
+//       ,Bond: Bond
+//       ,MultiBond: MultiBond
+//       ,SyncScheduler: schedulers.SyncScheduler
+//       ,AsyncScheduler: schedulers.AsyncScheduler
+//       ,currentScheduler: schedulers.currentScheduler
+//       ,schedule: schedulers.schedule
+//     }
+// })
