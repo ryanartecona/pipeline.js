@@ -4,7 +4,7 @@ TODO
 ## Tasks:
   - [ ] Support outlet detachment
     - [x] Pipe
-    - [ ] Inlet + subclasses
+    - [x] Inlet + subclasses
   - [ ] Event class to represent next/error/done events
   - [x] PropertyInlet
   - [ ] Scheduler replace work_queue
@@ -17,7 +17,7 @@ TODO
             or just use currentScheduler()
   - [x] Refactor to reduce send*/attachOutlet code dupe
   - [ ] SharedPipe
-  - [ ] Make a browser build
+  - [x] Make a browser build
     - [ ] Include an in-browser test runner
   - [ ] Populate important RAC/Rx combinators
 
