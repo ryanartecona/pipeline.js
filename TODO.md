@@ -36,9 +36,10 @@ TODO
   - [ ] Clean API for different merge/join strategies
     - [ ] mergeMap/concatMap & mergeJoin/concatJoin?
   - [ ] Rename HistoryInlet to BufferInlet or CacheInlet?
+  - [ ] How to handle library adapters?
 
 ## Ideas:
-  - A+ compliant Promise *with* monadic interface
+  - A+ compliant Promise with monadic interface
   - A debug mode that captures & extends stack traces
   - Backpressure!
   - Automatically track important properties on Pipe, e.g.
