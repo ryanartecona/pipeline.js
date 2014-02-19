@@ -47,7 +47,7 @@ HistoryInlet.prototype.sendError = function(e) {
 HistoryInlet.prototype.attachOutlet = function(outlet) {
   var vs = this._savedValues
   if (vs && vs.length) {
-    for (i in vs) {
+    for (var i in vs) {
       outlet.sendNext(vs[i])
     }
   }

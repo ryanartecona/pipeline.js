@@ -28,7 +28,7 @@ var withCurrentScheduler = function(scheduler, jobFn) {
     return
   }
   else {
-    prevScheduler = _current
+    var prevScheduler = _current
     _current = scheduler
     try {
       jobFn()
@@ -54,7 +54,7 @@ var AsyncScheduler = (function() {
     withCurrentScheduler(AsyncScheduler, function() {
       _is_currently_processing_queue = true
       while(_queue.length) {
-        job = _queue.shift()
+        var job = _queue.shift()
         try {
           job()
         } catch (e) {}

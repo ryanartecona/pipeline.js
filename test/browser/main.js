@@ -1115,7 +1115,7 @@ HistoryInlet.prototype.sendError = function(e) {
 HistoryInlet.prototype.attachOutlet = function(outlet) {
   var vs = this._savedValues
   if (vs && vs.length) {
-    for (i in vs) {
+    for (var i in vs) {
       outlet.sendNext(vs[i])
     }
   }
@@ -1310,7 +1310,7 @@ Pipe.fromArray = function(arr) {
   })
 }
 Pipe.of = function(/*args...*/) {
-  args = [].slice.call(arguments)
+  var args = [].slice.call(arguments)
   return Pipe.fromArray(args)
 }
 
@@ -1373,8 +1373,8 @@ Pipe.prototype = {
   }
   ,_broadcastToOutlets: function(method, arg) {
     if (this.outlets) {
-      for (i in this.outlets) {
-        outlet = this.outlets[i]
+      for (var i in this.outlets) {
+        var outlet = this.outlets[i]
         try {
           outlet[method](arg)
         } catch (e) {
@@ -1926,7 +1926,7 @@ var withCurrentScheduler = function(scheduler, jobFn) {
     return
   }
   else {
-    prevScheduler = _current
+    var prevScheduler = _current
     _current = scheduler
     try {
       jobFn()
@@ -1952,7 +1952,7 @@ var AsyncScheduler = (function() {
     withCurrentScheduler(AsyncScheduler, function() {
       _is_currently_processing_queue = true
       while(_queue.length) {
-        job = _queue.shift()
+        var job = _queue.shift()
         try {
           job()
         } catch (e) {}
@@ -2291,7 +2291,7 @@ var _ = require('./utils')
 describe('MultiBond', function() {
     
   beforeEach(function() {
-    thisTest = this
+    var thisTest = this
     this.breakCount = 0
     this.incBreakCount = function() {thisTest.breakCount++}
   })

@@ -34,7 +34,7 @@ Pipe.fromArray = function(arr) {
   })
 }
 Pipe.of = function(/*args...*/) {
-  args = [].slice.call(arguments)
+  var args = [].slice.call(arguments)
   return Pipe.fromArray(args)
 }
 
@@ -97,8 +97,8 @@ Pipe.prototype = {
   }
   ,_broadcastToOutlets: function(method, arg) {
     if (this.outlets) {
-      for (i in this.outlets) {
-        outlet = this.outlets[i]
+      for (var i in this.outlets) {
+        var outlet = this.outlets[i]
         try {
           outlet[method](arg)
         } catch (e) {

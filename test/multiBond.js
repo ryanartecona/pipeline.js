@@ -6,7 +6,7 @@ var _ = require('./utils')
 describe('MultiBond', function() {
     
   beforeEach(function() {
-    thisTest = this
+    var thisTest = this
     this.breakCount = 0
     this.incBreakCount = function() {thisTest.breakCount++}
   })
