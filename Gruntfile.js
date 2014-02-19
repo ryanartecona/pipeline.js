@@ -22,6 +22,20 @@ module.exports = function(grunt) {
         src: ['test/promise-a+.js']
       }
     },
+    browserify: {
+      dist: {
+        src: ['src/pipeline.js'],
+        dest: 'dist/pipeline.js',
+        options: {
+          // alias: [
+          //   'src/pipeline.js:pipeline',
+          //   'src/pipeline.js:PL'
+          // ],
+          standalone: 'PL',
+          detectGlobals: false
+        }
+      }
+    },
     uglify: {
       options: {
         banner: '<%= banner %>'
@@ -29,24 +43,6 @@ module.exports = function(grunt) {
       dist: {
         src: 'dist/pipeline.js',
         dest: 'dist/pipeline.min.js'
-      }
-    },
-    requirejs: {
-      options: {
-        cjsTranslate: true,
-        optimize: 'none',
-        baseUrl: 'src',
-        name: '../node_modules/almond/almond',
-        wrap: {
-          startFile: 'build/export-start.fragment.js',
-          endFile: 'build/export-end.fragment.js'
-        }
-      },
-      main: {
-        options: {
-          include: 'pipeline',
-          out: 'dist/pipeline.js'
-        }
       }
     },
     jshint: {
@@ -90,14 +86,14 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-requirejs');
   grunt.loadNpmTasks('grunt-mocha-test');
+  grunt.loadNpmTasks('grunt-browserify');
 
   grunt.task.renameTask('mochaTest', 'test');
 
   // Default task.
   grunt.registerTask('default', ['test:main', 'jshint', 'build']);
   // Task to run r.js optimizer, concat, and minify to a single file
-  grunt.registerTask('build', ['requirejs', 'uglify'])
+  grunt.registerTask('build', ['browserify', 'uglify'])
 
 };
