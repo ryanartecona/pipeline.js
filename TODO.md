@@ -5,6 +5,7 @@ TODO
   - [ ] Support outlet detachment
     - [x] Pipe
     - [x] Inlet + subclasses
+    - [ ] Pipe combinators
   - [ ] Event class to represent next/error/done events
   - [x] PropertyInlet
   - [ ] Scheduler replace work_queue
