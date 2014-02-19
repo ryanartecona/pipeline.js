@@ -79,6 +79,10 @@ module.exports = function(grunt) {
       build: {
         files: ['src/*.js'],
         tasks: ['build']
+      },
+      dev: {
+        files: ['src/*.js', 'test/*.js', '!test/browser.js'],
+        tasks: ['default']
       }
     }
   });
@@ -92,8 +96,8 @@ module.exports = function(grunt) {
 
   grunt.task.renameTask('mochaTest', 'test');
 
-  // Default task runs the main test suite, linter, then builds bundles
-  grunt.registerTask('default', ['test:main', 'jshint', 'build']);
+  // Default task runs the test suite, linter, then builds dist & browser test bundles
+  grunt.registerTask('default', ['test', 'jshint', 'browserify', 'uglify']);
   // Task to run r.js optimizer, concat, and minify to a single file
   grunt.registerTask('build', ['browserify:dist', 'uglify:dist']);
 
