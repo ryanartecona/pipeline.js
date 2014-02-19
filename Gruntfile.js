@@ -12,8 +12,9 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
     test: {
       options: {
-        reporter: 'dot'
-        ,bail: true
+        reporter: 'dot',
+        bail: true,
+        ignoreLeaks: false
       },
       main: {
         src: ['test/main.js']
@@ -30,6 +31,10 @@ module.exports = function(grunt) {
           standalone: 'PL',
           detectGlobals: false
         }
+      },
+      test: {
+        src: ['test/main.js'],
+        dest: 'test/browser/main.js'
       }
     },
     uglify: {
@@ -68,8 +73,8 @@ module.exports = function(grunt) {
         atBegin: true
       },
       test: {
-        files: ['src/*.js', 'test/*.js'],
-        tasks: ['test']
+        files: ['src/*.js', 'test/*.js', '!test/browser.js'],
+        tasks: ['test', 'browserify:test']
       },
       build: {
         files: ['src/*.js'],
@@ -90,6 +95,6 @@ module.exports = function(grunt) {
   // Default task runs the main test suite, linter, then builds bundles
   grunt.registerTask('default', ['test:main', 'jshint', 'build']);
   // Task to run r.js optimizer, concat, and minify to a single file
-  grunt.registerTask('build', ['browserify', 'uglify'])
+  grunt.registerTask('build', ['browserify:dist', 'uglify:dist']);
 
 };
