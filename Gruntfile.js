@@ -27,10 +27,6 @@ module.exports = function(grunt) {
         src: ['src/pipeline.js'],
         dest: 'dist/pipeline.js',
         options: {
-          // alias: [
-          //   'src/pipeline.js:pipeline',
-          //   'src/pipeline.js:PL'
-          // ],
           standalone: 'PL',
           detectGlobals: false
         }
@@ -91,7 +87,7 @@ module.exports = function(grunt) {
 
   grunt.task.renameTask('mochaTest', 'test');
 
-  // Default task.
+  // Default task runs the main test suite, linter, then builds bundles
   grunt.registerTask('default', ['test:main', 'jshint', 'build']);
   // Task to run r.js optimizer, concat, and minify to a single file
   grunt.registerTask('build', ['browserify', 'uglify'])
