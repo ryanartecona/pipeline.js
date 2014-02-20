@@ -29,7 +29,22 @@ It is in a very early stage, but there are already robust JS FRP libraries avail
 
 (*TODO*)
 
-For now, you can look through the [test suite](test/pipe.js) to see basic usage examples.
+For basic definitions of core classes, see the [terminology document](terminology.md).For now, you can look through the [test suite](test/pipe.js) to see basic usage examples, and [example/example1.html](example/example1.html) to see a crude in-browser example.
+
+### Helpful Resources
+
+#### FRP in JavaScript
+ 
+ - [Intro to RxJS](http://cwharris.wordpress.com/2012/10/10/intro-to-rxjs/)
+ - [Implementing Snake in Bacon.js](http://philipnilsson.github.io/badness/)
+ - [RxJS Intro Snippets](https://gist.github.com/ekantola/5507237)
+ - [Rx and Netflix](http://channel9.msdn.com/posts/YOW-2012-Jafar-Husain-Rx-and-Netflix-A-Match-Made-in-Composable-Asynchrony)
+
+#### Elsewhere
+
+ - [Elm](http://elm-lang.org/Learn.elm) is an amazing FRP language that compiles to HTML/CSS/JS
+   - [This StrangeLoop presentation](http://www.infoq.com/presentations/elm-reactive-programming) by the creator is a great intro and showcase of its expressive power
+ - [Functional Reactive Animation](http://conal.net/papers/icfp97/icfp97.pdf) is the research paper that started it all
 
 ## Installation
 
@@ -37,8 +52,8 @@ pipeline.js is compatible with node, browser, and AMD environments. It is not ye
 
 ## Roadmap
 
-See [TODO.md](TODO.md)
+See [TODO.md](TODO.md). Contributions and questions welcome!
 
 ------
 
-Send your thoughts to [@ryanartecona](https://twitter.com/ryanartecona)
+[@ryanartecona](https://twitter.com/ryanartecona)
