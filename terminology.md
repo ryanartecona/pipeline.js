@@ -1,7 +1,7 @@
 Naming in FRP is Difficult
 --------------------------
 
-I want to get the terminology right, so to strike a balance (if one exists) between approachability for JavaScript devs, and clearly defined and distinguished semantics for advanced use. I want to map the terminology onto a domain more readily familiar, less burdened by clashes with existing concepts, and more indicative of each class's role than a straight port of Signal/Subscriber/Subject/Disposable (RAC) or Observable/Observer/Subject/Subscription (RxJS). I will use the core of ReactiveCocoa as a reference point.
+I want to get the terminology right, so to strike a balance (if one exists) between approachability for JavaScript devs, and clearly defined and distinguished semantics for advanced use. I want to map the terminology onto a domain more readily familiar, less burdened by clashes with existing concepts, and more indicative of each class's role than a straight port of Signal/Subscriber/Subject/Disposable (RAC) or Observable/Observer/Subject/Disposable (RxJS). I will use the core of ReactiveCocoa as a reference point.
 
 
 1.  | ReactiveCocoa        | RxJS                  | Pipeline.js
