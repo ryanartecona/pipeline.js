@@ -1065,12 +1065,11 @@ Bond.prototype.break = function() {
 
 module.exports = Bond
 
-},{"./assert":15}],7:[function(require,module,exports){
+},{"./assert":14}],7:[function(require,module,exports){
 var assert = require('./assert')
 var Pipe = require('./Pipe')
 var Inlet = require('./Inlet')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 
 
 var HistoryInlet = function(capacity) {
@@ -1132,7 +1131,7 @@ HistoryInlet.prototype.attachOutlet = function(outlet) {
 
 module.exports = HistoryInlet
 
-},{"./Inlet":8,"./Pipe":11,"./assert":15,"./schedulers":17}],8:[function(require,module,exports){
+},{"./Inlet":8,"./Pipe":11,"./assert":14,"./schedulers":16}],8:[function(require,module,exports){
 var assert = require('./assert')
 var Pipe = require('./Pipe')
 var Bond = require('./Bond')
@@ -1176,7 +1175,7 @@ Inlet.prototype.sendDone = function() {
 
 module.exports = Inlet
 
-},{"./Bond":6,"./Pipe":11,"./assert":15}],9:[function(require,module,exports){
+},{"./Bond":6,"./Pipe":11,"./assert":14}],9:[function(require,module,exports){
 var Bond = require('./Bond')
 
 
@@ -1234,7 +1233,7 @@ Outlet.prototype = {
     doneIsFunction && (this._doneHandler  = handlers.done)
 
     var thisOutlet = this
-    this._bond = new MultiBond([new Bond(function() {
+    this.bond = new MultiBond([new Bond(function() {
       delete thisOutlet._nextHandler
       delete thisOutlet._errorHandler
       delete thisOutlet._doneHandler
@@ -1255,32 +1254,26 @@ Outlet.prototype = {
   ,sendError: function(e) {
     if (!this.hasOwnProperty('_errorHandler')) return
     var errorHandler = this._errorHandler
-    this._bond.break()
+    this.bond.break()
     errorHandler(e)
   }
   ,sendDone: function() {
     if (!this.hasOwnProperty('_doneHandler')) return
     var doneHandler = this._doneHandler
-    this._bond.break()
+    this.bond.break()
     doneHandler()
-  }
-
-  ,attachedWithBond: function(newBond) {
-    this._bond.addBond(newBond)
   }
 }
 
 
 module.exports = Outlet
 
-},{"./Bond":6,"./MultiBond":9,"./assert":15}],11:[function(require,module,exports){
+},{"./Bond":6,"./MultiBond":9,"./assert":14}],11:[function(require,module,exports){
 var assert = require('./assert')
 var Outlet = require('./Outlet')
 var Bond = require('./Bond')
 var MultiBond = require('./MultiBond')
-var ProxyOutlet = require('./ProxyOutlet')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = require('./utils')
 
 "use strict"
@@ -1330,33 +1323,35 @@ Pipe.prototype = {
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
     assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
+    if (outlet.bond.isBroken) return
 
-    this.outlets || (this.outlets = [])
     var thisP = this
-    var multiBond = new MultiBond()
-    var proxyOutlet = new ProxyOutlet(outlet, multiBond)
 
-    AttachmentScheduler.schedule(function() {
-      if (multiBond.isBroken) return
+    schedulers.schedule(function() {
+      if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
-        var innerBond = thisP.onAttach(proxyOutlet)
+        var innerBond = thisP.onAttach(outlet)
         if (innerBond instanceof Bond) {
-          multiBond.addBond(innerBond)
+          outlet.bond.addBond(innerBond)
         }
       }
 
-      if (multiBond.isBroken) return
-      thisP.outlets || (this.outlets = [])
-      thisP.outlets.push(proxyOutlet)
-      multiBond.addBond(new Bond(function() {
-        thisP._detachOutlet(proxyOutlet)
+      if (outlet.bond.isBroken) return
+      thisP.outlets || (thisP.outlets = [])
+      thisP.outlets.push(outlet)
+      outlet.bond.addBond(new Bond(function() {
+        thisP._detachOutlet(outlet)
       }))
     })
-
-    return multiBond
   }
 
-  ,on: function(handlers) {return this.attachOutlet(new Outlet(handlers))}
+  ,on: function(handlers) {
+    var outlet = new Outlet(handlers)
+    if (typeof handlers.bond === 'function') {
+      handlers.bond.call(null, outlet.bond)
+    }
+    return this.attachOutlet(outlet)
+  }
   ,onNext:  function(handler) {return this.on({next:  handler})}
   ,onError: function(handler) {return this.on({error: handler})}
   ,onDone:  function(handler) {return this.on({done:  handler})}
@@ -1604,13 +1599,12 @@ Pipe.prototype = {
 
 module.exports = Pipe
 
-},{"./Bond":6,"./MultiBond":9,"./Outlet":10,"./ProxyOutlet":14,"./assert":15,"./schedulers":17,"./utils":18}],12:[function(require,module,exports){
+},{"./Bond":6,"./MultiBond":9,"./Outlet":10,"./assert":14,"./schedulers":16,"./utils":17}],12:[function(require,module,exports){
 var assert = require('./assert')
 var Pipe = require('./Pipe')
 var MultiBond = require('./MultiBond')
 var Bond = require('./Bond')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var AsyncScheduler = schedulers.AsyncScheduler
 
 "use strict"
@@ -1648,7 +1642,7 @@ Promise.prototype.init = function() {}
 Promise.prototype.attachOutlet = function(outlet) {
   var thisP = this
   var multiBond = new MultiBond()
-  AttachmentScheduler.schedule(function() {
+  AsyncScheduler.schedule(function() {
     if (multiBond.isBroken) return
     if (thisP.status === Promise.statusTypePending) {
       thisP.outlets || (thisP.outlets = [])
@@ -1791,12 +1785,11 @@ Promise.prototype.resolve = function(x) {
 
 module.exports = Promise
 
-},{"./Bond":6,"./MultiBond":9,"./Pipe":11,"./assert":15,"./schedulers":17}],13:[function(require,module,exports){
+},{"./Bond":6,"./MultiBond":9,"./Pipe":11,"./assert":14,"./schedulers":16}],13:[function(require,module,exports){
 var assert = require('./assert')
 var Pipe = require('./Pipe')
 var Inlet = require('./Inlet')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 
 
 // TOOD: should this be the constructor,
@@ -1829,46 +1822,14 @@ PropertyInlet.prototype.sendNext = function(v) {
 
 module.exports = PropertyInlet
 
-},{"./Inlet":8,"./Pipe":11,"./assert":15,"./schedulers":17}],14:[function(require,module,exports){
-var assert = require('./assert')
-
-
-var ProxyOutlet = function(outlet, bond) {
-  this.outlet = outlet
-  this.bond = bond
-  this.outlet.attachedWithBond(bond)
-}
-
-ProxyOutlet.prototype.sendNext = function(v) {
-  if (this.bond.isBroken) return
-  this.outlet.sendNext(v)
-}
-ProxyOutlet.prototype.sendError = function(e) {
-  if (this.bond.isBroken) return
-  this.outlet.sendError(e)
-}
-ProxyOutlet.prototype.sendDone = function() {
-  if (this.bond.isBroken) return
-  this.outlet.sendDone()
-}
-
-ProxyOutlet.prototype.attachedWithBond = function(newBond) {
-  if (newBond !== this.bond) {
-    this.bond.addBond(newBond)
-  }
-}
-
-
-module.exports = ProxyOutlet
-
-},{"./assert":15}],15:[function(require,module,exports){
+},{"./Inlet":8,"./Pipe":11,"./assert":14,"./schedulers":16}],14:[function(require,module,exports){
 module.exports = function assert(testVal, message) {
   if (!testVal) {
     throw new TypeError(message)
   }
 }
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var Pipe = require('./Pipe')
 var Inlet = require('./Inlet')
 var HistoryInlet = require('./HistoryInlet')
@@ -1894,7 +1855,7 @@ module.exports = {
   ,schedule: schedulers.schedule
 }
 
-},{"./Bond":6,"./HistoryInlet":7,"./Inlet":8,"./MultiBond":9,"./Outlet":10,"./Pipe":11,"./Promise":12,"./PropertyInlet":13,"./schedulers":17}],17:[function(require,module,exports){
+},{"./Bond":6,"./HistoryInlet":7,"./Inlet":8,"./MultiBond":9,"./Outlet":10,"./Pipe":11,"./Promise":12,"./PropertyInlet":13,"./schedulers":16}],16:[function(require,module,exports){
 (function (process){
 /**
  * Thoughts:
@@ -1911,9 +1872,12 @@ module.exports = {
  */
 
 var _current
-
 var currentScheduler = function() {
-  return _current || SyncScheduler
+  return _current || defaultScheduler()
+}
+
+var defaultScheduler = function() {
+  return AsyncScheduler
 }
 
 var schedule = function(jobFn) {
@@ -2007,25 +1971,15 @@ var AsyncScheduler = (function() {
   }
 })()
 
-var AttachmentScheduler = {
-  schedule: function(jobFn) {
-    typeof _current !== 'undefined' 
-      ? jobFn()
-      : AsyncScheduler.schedule(jobFn)
-    // jobFn()
-  }
-}
-
 module.exports = {
   schedule: schedule
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
-  ,AttachmentScheduler: AttachmentScheduler
 }
 
 }).call(this,require("/Users/rartecon/Dropbox/Code/JavaScript/pipeline.js/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"/Users/rartecon/Dropbox/Code/JavaScript/pipeline.js/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":5}],18:[function(require,module,exports){
+},{"/Users/rartecon/Dropbox/Code/JavaScript/pipeline.js/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":5}],17:[function(require,module,exports){
 var debug_mode = false
 var debug = function debug() {
   if (debug_mode) {
@@ -2037,7 +1991,7 @@ module.exports = {
   debug: debug
 }
 
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var _ = require('./utils')
@@ -2073,7 +2027,7 @@ describe('Bond', function() {
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],20:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],19:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var _ = require('./utils')
@@ -2195,7 +2149,7 @@ describe('HistoryInlet', function() {
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],21:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],20:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var _ = require('./utils')
@@ -2275,14 +2229,14 @@ describe('Inlet', function() {
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],22:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],21:[function(require,module,exports){
 require('./pipe')
 require('./inlet')
 require('./historyInlet')
 require('./propertyInlet')
 require('./bond')
 require('./multiBond')
-},{"./bond":19,"./historyInlet":20,"./inlet":21,"./multiBond":23,"./pipe":24,"./propertyInlet":25}],23:[function(require,module,exports){
+},{"./bond":18,"./historyInlet":19,"./inlet":20,"./multiBond":22,"./pipe":23,"./propertyInlet":24}],22:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var _ = require('./utils')
@@ -2328,7 +2282,7 @@ describe('MultiBond', function() {
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],24:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],23:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var Pipe = PL.Pipe
@@ -2450,14 +2404,20 @@ describe('Pipe', function(){
 
       it('can happen immediately', function(done) {
         var pipe = Pipe.of(1, 2, 3)
-        var bond = pipe.on({next: done, error: done, done: done})
-        bond.break()
+        pipe.on({
+          next: done
+          ,error: done
+          ,done: done
+          ,bond: function(bond) {
+            bond.break()
+          }})
         done()
       })
 
       it('can happen within the `next` handler', function(done) {
         var pipe = Pipe.of(1, 2, 3)
-        var bond = pipe.on({
+        var bond;
+        pipe.on({
           next: function(v) {
             done()
             bond.break()
@@ -2468,13 +2428,29 @@ describe('Pipe', function(){
           ,done: function() {
             done('done should never be received')
           }
+          ,bond: function(b) {
+            bond = b
+          }
         })
+      })
+
+      it('works on a pre-cancelled Outlet', function(done) {
+        var pipe = Pipe.of(1, 2, 3)
+        var outlet = new PL.Outlet({
+          next: done
+          ,error: done
+          ,done: done
+        })
+        outlet.bond.break()
+
+        pipe.attachOutlet(outlet)
+        done()
       })
     })
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],25:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],24:[function(require,module,exports){
 var assert = require('assert')
 var PL = require('../src/pipeline')
 var _ = require('./utils')
@@ -2548,7 +2524,7 @@ describe('PropertyInlet', function() {
   })
 })
 
-},{"../src/pipeline":16,"./utils":26,"assert":1}],26:[function(require,module,exports){
+},{"../src/pipeline":15,"./utils":25,"assert":1}],25:[function(require,module,exports){
 var assert = require('assert')
 
 
@@ -2572,4 +2548,4 @@ module.exports = {
   assertAccum: assertAccum
 }
 
-},{"assert":1}]},{},[22])
+},{"assert":1}]},{},[21])
