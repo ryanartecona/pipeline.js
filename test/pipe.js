@@ -119,14 +119,20 @@ describe('Pipe', function(){
 
       it('can happen immediately', function(done) {
         var pipe = Pipe.of(1, 2, 3)
-        var bond = pipe.on({next: done, error: done, done: done})
-        bond.break()
+        pipe.on({
+          next: done
+          ,error: done
+          ,done: done
+          ,bond: function(bond) {
+            bond.break()
+          }})
         done()
       })
 
       it('can happen within the `next` handler', function(done) {
         var pipe = Pipe.of(1, 2, 3)
-        var bond = pipe.on({
+        var bond;
+        pipe.on({
           next: function(v) {
             done()
             bond.break()
@@ -137,7 +143,23 @@ describe('Pipe', function(){
           ,done: function() {
             done('done should never be received')
           }
+          ,bond: function(b) {
+            bond = b
+          }
         })
+      })
+
+      it('works on a pre-cancelled Outlet', function(done) {
+        var pipe = Pipe.of(1, 2, 3)
+        var outlet = new PL.Outlet({
+          next: done
+          ,error: done
+          ,done: done
+        })
+        outlet.bond.break()
+
+        pipe.attachOutlet(outlet)
+        done()
       })
     })
   })

@@ -19,7 +19,7 @@ Outlet.prototype = {
     doneIsFunction && (this._doneHandler  = handlers.done)
 
     var thisOutlet = this
-    this._bond = new MultiBond([new Bond(function() {
+    this.bond = new MultiBond([new Bond(function() {
       delete thisOutlet._nextHandler
       delete thisOutlet._errorHandler
       delete thisOutlet._doneHandler
@@ -40,18 +40,14 @@ Outlet.prototype = {
   ,sendError: function(e) {
     if (!this.hasOwnProperty('_errorHandler')) return
     var errorHandler = this._errorHandler
-    this._bond.break()
+    this.bond.break()
     errorHandler(e)
   }
   ,sendDone: function() {
     if (!this.hasOwnProperty('_doneHandler')) return
     var doneHandler = this._doneHandler
-    this._bond.break()
+    this.bond.break()
     doneHandler()
-  }
-
-  ,attachedWithBond: function(newBond) {
-    this._bond.addBond(newBond)
   }
 }
 

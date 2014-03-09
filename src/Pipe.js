@@ -2,7 +2,6 @@ var assert = require('./assert')
 var Outlet = require('./Outlet')
 var Bond = require('./Bond')
 var MultiBond = require('./MultiBond')
-var ProxyOutlet = require('./ProxyOutlet')
 var schedulers = require('./schedulers')
 var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = require('./utils')
@@ -54,33 +53,35 @@ Pipe.prototype = {
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
     assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
+    if (outlet.bond.isBroken) return
 
-    this.outlets || (this.outlets = [])
     var thisP = this
-    var multiBond = new MultiBond()
-    var proxyOutlet = new ProxyOutlet(outlet, multiBond)
 
     AttachmentScheduler.schedule(function() {
-      if (multiBond.isBroken) return
+      if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
-        var innerBond = thisP.onAttach(proxyOutlet)
+        var innerBond = thisP.onAttach(outlet)
         if (innerBond instanceof Bond) {
-          multiBond.addBond(innerBond)
+          outlet.bond.addBond(innerBond)
         }
       }
 
-      if (multiBond.isBroken) return
-      thisP.outlets || (this.outlets = [])
-      thisP.outlets.push(proxyOutlet)
-      multiBond.addBond(new Bond(function() {
-        thisP._detachOutlet(proxyOutlet)
+      if (outlet.bond.isBroken) return
+      thisP.outlets || (thisP.outlets = [])
+      thisP.outlets.push(outlet)
+      outlet.bond.addBond(new Bond(function() {
+        thisP._detachOutlet(outlet)
       }))
     })
-
-    return multiBond
   }
 
-  ,on: function(handlers) {return this.attachOutlet(new Outlet(handlers))}
+  ,on: function(handlers) {
+    var outlet = new Outlet(handlers)
+    if (typeof handlers.bond === 'function') {
+      handlers.bond.call(null, outlet.bond)
+    }
+    return this.attachOutlet(outlet)
+  }
   ,onNext:  function(handler) {return this.on({next:  handler})}
   ,onError: function(handler) {return this.on({error: handler})}
   ,onDone:  function(handler) {return this.on({done:  handler})}
