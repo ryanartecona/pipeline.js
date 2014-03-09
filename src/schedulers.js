@@ -13,9 +13,12 @@
  */
 
 var _current
-
 var currentScheduler = function() {
-  return _current || SyncScheduler
+  return _current || defaultScheduler()
+}
+
+var defaultScheduler = function() {
+  return AsyncScheduler
 }
 
 var schedule = function(jobFn) {
@@ -109,19 +112,9 @@ var AsyncScheduler = (function() {
   }
 })()
 
-var AttachmentScheduler = {
-  schedule: function(jobFn) {
-    typeof _current !== 'undefined' 
-      ? jobFn()
-      : AsyncScheduler.schedule(jobFn)
-    // jobFn()
-  }
-}
-
 module.exports = {
   schedule: schedule
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
-  ,AttachmentScheduler: AttachmentScheduler
 }

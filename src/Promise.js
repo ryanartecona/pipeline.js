@@ -3,7 +3,6 @@ var Pipe = require('./Pipe')
 var MultiBond = require('./MultiBond')
 var Bond = require('./Bond')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var AsyncScheduler = schedulers.AsyncScheduler
 
 "use strict"
@@ -41,7 +40,7 @@ Promise.prototype.init = function() {}
 Promise.prototype.attachOutlet = function(outlet) {
   var thisP = this
   var multiBond = new MultiBond()
-  AttachmentScheduler.schedule(function() {
+  AsyncScheduler.schedule(function() {
     if (multiBond.isBroken) return
     if (thisP.status === Promise.statusTypePending) {
       thisP.outlets || (thisP.outlets = [])

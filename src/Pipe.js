@@ -3,7 +3,6 @@ var Outlet = require('./Outlet')
 var Bond = require('./Bond')
 var MultiBond = require('./MultiBond')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = require('./utils')
 
 "use strict"
@@ -57,7 +56,7 @@ Pipe.prototype = {
 
     var thisP = this
 
-    AttachmentScheduler.schedule(function() {
+    schedulers.schedule(function() {
       if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
         var innerBond = thisP.onAttach(outlet)

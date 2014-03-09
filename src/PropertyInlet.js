@@ -2,7 +2,6 @@ var assert = require('./assert')
 var Pipe = require('./Pipe')
 var Inlet = require('./Inlet')
 var schedulers = require('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 
 
 // TOOD: should this be the constructor,
