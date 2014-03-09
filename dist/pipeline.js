@@ -26,12 +26,11 @@ Bond.prototype.break = function() {
 
 module.exports = Bond
 
-},{"./assert":10}],2:[function(_dereq_,module,exports){
+},{"./assert":9}],2:[function(_dereq_,module,exports){
 var assert = _dereq_('./assert')
 var Pipe = _dereq_('./Pipe')
 var Inlet = _dereq_('./Inlet')
 var schedulers = _dereq_('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 
 
 var HistoryInlet = function(capacity) {
@@ -93,7 +92,7 @@ HistoryInlet.prototype.attachOutlet = function(outlet) {
 
 module.exports = HistoryInlet
 
-},{"./Inlet":3,"./Pipe":6,"./assert":10,"./schedulers":12}],3:[function(_dereq_,module,exports){
+},{"./Inlet":3,"./Pipe":6,"./assert":9,"./schedulers":11}],3:[function(_dereq_,module,exports){
 var assert = _dereq_('./assert')
 var Pipe = _dereq_('./Pipe')
 var Bond = _dereq_('./Bond')
@@ -137,7 +136,7 @@ Inlet.prototype.sendDone = function() {
 
 module.exports = Inlet
 
-},{"./Bond":1,"./Pipe":6,"./assert":10}],4:[function(_dereq_,module,exports){
+},{"./Bond":1,"./Pipe":6,"./assert":9}],4:[function(_dereq_,module,exports){
 var Bond = _dereq_('./Bond')
 
 
@@ -195,7 +194,7 @@ Outlet.prototype = {
     doneIsFunction && (this._doneHandler  = handlers.done)
 
     var thisOutlet = this
-    this._bond = new MultiBond([new Bond(function() {
+    this.bond = new MultiBond([new Bond(function() {
       delete thisOutlet._nextHandler
       delete thisOutlet._errorHandler
       delete thisOutlet._doneHandler
@@ -216,32 +215,26 @@ Outlet.prototype = {
   ,sendError: function(e) {
     if (!this.hasOwnProperty('_errorHandler')) return
     var errorHandler = this._errorHandler
-    this._bond.break()
+    this.bond.break()
     errorHandler(e)
   }
   ,sendDone: function() {
     if (!this.hasOwnProperty('_doneHandler')) return
     var doneHandler = this._doneHandler
-    this._bond.break()
+    this.bond.break()
     doneHandler()
-  }
-
-  ,attachedWithBond: function(newBond) {
-    this._bond.addBond(newBond)
   }
 }
 
 
 module.exports = Outlet
 
-},{"./Bond":1,"./MultiBond":4,"./assert":10}],6:[function(_dereq_,module,exports){
+},{"./Bond":1,"./MultiBond":4,"./assert":9}],6:[function(_dereq_,module,exports){
 var assert = _dereq_('./assert')
 var Outlet = _dereq_('./Outlet')
 var Bond = _dereq_('./Bond')
 var MultiBond = _dereq_('./MultiBond')
-var ProxyOutlet = _dereq_('./ProxyOutlet')
 var schedulers = _dereq_('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var _ = _dereq_('./utils')
 
 "use strict"
@@ -291,33 +284,35 @@ Pipe.prototype = {
         && typeof outlet.sendError === 'function'
         && typeof outlet.sendDone === 'function')
     assert(!this.isDone, 'cannot attach an outlet to a finished Pipe')
+    if (outlet.bond.isBroken) return
 
-    this.outlets || (this.outlets = [])
     var thisP = this
-    var multiBond = new MultiBond()
-    var proxyOutlet = new ProxyOutlet(outlet, multiBond)
 
-    AttachmentScheduler.schedule(function() {
-      if (multiBond.isBroken) return
+    schedulers.schedule(function() {
+      if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
-        var innerBond = thisP.onAttach(proxyOutlet)
+        var innerBond = thisP.onAttach(outlet)
         if (innerBond instanceof Bond) {
-          multiBond.addBond(innerBond)
+          outlet.bond.addBond(innerBond)
         }
       }
 
-      if (multiBond.isBroken) return
-      thisP.outlets || (this.outlets = [])
-      thisP.outlets.push(proxyOutlet)
-      multiBond.addBond(new Bond(function() {
-        thisP._detachOutlet(proxyOutlet)
+      if (outlet.bond.isBroken) return
+      thisP.outlets || (thisP.outlets = [])
+      thisP.outlets.push(outlet)
+      outlet.bond.addBond(new Bond(function() {
+        thisP._detachOutlet(outlet)
       }))
     })
-
-    return multiBond
   }
 
-  ,on: function(handlers) {return this.attachOutlet(new Outlet(handlers))}
+  ,on: function(handlers) {
+    var outlet = new Outlet(handlers)
+    if (typeof handlers.bond === 'function') {
+      handlers.bond.call(null, outlet.bond)
+    }
+    return this.attachOutlet(outlet)
+  }
   ,onNext:  function(handler) {return this.on({next:  handler})}
   ,onError: function(handler) {return this.on({error: handler})}
   ,onDone:  function(handler) {return this.on({done:  handler})}
@@ -565,13 +560,12 @@ Pipe.prototype = {
 
 module.exports = Pipe
 
-},{"./Bond":1,"./MultiBond":4,"./Outlet":5,"./ProxyOutlet":9,"./assert":10,"./schedulers":12,"./utils":13}],7:[function(_dereq_,module,exports){
+},{"./Bond":1,"./MultiBond":4,"./Outlet":5,"./assert":9,"./schedulers":11,"./utils":12}],7:[function(_dereq_,module,exports){
 var assert = _dereq_('./assert')
 var Pipe = _dereq_('./Pipe')
 var MultiBond = _dereq_('./MultiBond')
 var Bond = _dereq_('./Bond')
 var schedulers = _dereq_('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 var AsyncScheduler = schedulers.AsyncScheduler
 
 "use strict"
@@ -609,7 +603,7 @@ Promise.prototype.init = function() {}
 Promise.prototype.attachOutlet = function(outlet) {
   var thisP = this
   var multiBond = new MultiBond()
-  AttachmentScheduler.schedule(function() {
+  AsyncScheduler.schedule(function() {
     if (multiBond.isBroken) return
     if (thisP.status === Promise.statusTypePending) {
       thisP.outlets || (thisP.outlets = [])
@@ -752,12 +746,11 @@ Promise.prototype.resolve = function(x) {
 
 module.exports = Promise
 
-},{"./Bond":1,"./MultiBond":4,"./Pipe":6,"./assert":10,"./schedulers":12}],8:[function(_dereq_,module,exports){
+},{"./Bond":1,"./MultiBond":4,"./Pipe":6,"./assert":9,"./schedulers":11}],8:[function(_dereq_,module,exports){
 var assert = _dereq_('./assert')
 var Pipe = _dereq_('./Pipe')
 var Inlet = _dereq_('./Inlet')
 var schedulers = _dereq_('./schedulers')
-var AttachmentScheduler = schedulers.AttachmentScheduler
 
 
 // TOOD: should this be the constructor,
@@ -790,46 +783,14 @@ PropertyInlet.prototype.sendNext = function(v) {
 
 module.exports = PropertyInlet
 
-},{"./Inlet":3,"./Pipe":6,"./assert":10,"./schedulers":12}],9:[function(_dereq_,module,exports){
-var assert = _dereq_('./assert')
-
-
-var ProxyOutlet = function(outlet, bond) {
-  this.outlet = outlet
-  this.bond = bond
-  this.outlet.attachedWithBond(bond)
-}
-
-ProxyOutlet.prototype.sendNext = function(v) {
-  if (this.bond.isBroken) return
-  this.outlet.sendNext(v)
-}
-ProxyOutlet.prototype.sendError = function(e) {
-  if (this.bond.isBroken) return
-  this.outlet.sendError(e)
-}
-ProxyOutlet.prototype.sendDone = function() {
-  if (this.bond.isBroken) return
-  this.outlet.sendDone()
-}
-
-ProxyOutlet.prototype.attachedWithBond = function(newBond) {
-  if (newBond !== this.bond) {
-    this.bond.addBond(newBond)
-  }
-}
-
-
-module.exports = ProxyOutlet
-
-},{"./assert":10}],10:[function(_dereq_,module,exports){
+},{"./Inlet":3,"./Pipe":6,"./assert":9,"./schedulers":11}],9:[function(_dereq_,module,exports){
 module.exports = function assert(testVal, message) {
   if (!testVal) {
     throw new TypeError(message)
   }
 }
 
-},{}],11:[function(_dereq_,module,exports){
+},{}],10:[function(_dereq_,module,exports){
 var Pipe = _dereq_('./Pipe')
 var Inlet = _dereq_('./Inlet')
 var HistoryInlet = _dereq_('./HistoryInlet')
@@ -855,7 +816,7 @@ module.exports = {
   ,schedule: schedulers.schedule
 }
 
-},{"./Bond":1,"./HistoryInlet":2,"./Inlet":3,"./MultiBond":4,"./Outlet":5,"./Pipe":6,"./Promise":7,"./PropertyInlet":8,"./schedulers":12}],12:[function(_dereq_,module,exports){
+},{"./Bond":1,"./HistoryInlet":2,"./Inlet":3,"./MultiBond":4,"./Outlet":5,"./Pipe":6,"./Promise":7,"./PropertyInlet":8,"./schedulers":11}],11:[function(_dereq_,module,exports){
 /**
  * Thoughts:
  *
@@ -871,9 +832,12 @@ module.exports = {
  */
 
 var _current
-
 var currentScheduler = function() {
-  return _current || SyncScheduler
+  return _current || defaultScheduler()
+}
+
+var defaultScheduler = function() {
+  return AsyncScheduler
 }
 
 var schedule = function(jobFn) {
@@ -967,24 +931,14 @@ var AsyncScheduler = (function() {
   }
 })()
 
-var AttachmentScheduler = {
-  schedule: function(jobFn) {
-    typeof _current !== 'undefined' 
-      ? jobFn()
-      : AsyncScheduler.schedule(jobFn)
-    // jobFn()
-  }
-}
-
 module.exports = {
   schedule: schedule
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
-  ,AttachmentScheduler: AttachmentScheduler
 }
 
-},{}],13:[function(_dereq_,module,exports){
+},{}],12:[function(_dereq_,module,exports){
 var debug_mode = false
 var debug = function debug() {
   if (debug_mode) {
@@ -996,6 +950,6 @@ module.exports = {
   debug: debug
 }
 
-},{}]},{},[11])
-(11)
+},{}]},{},[10])
+(10)
 });
