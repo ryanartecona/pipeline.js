@@ -38,16 +38,24 @@ Outlet.prototype = {
     this._nextHandler.call(null, v)
   }
   ,sendError: function(e) {
-    if (!this.hasOwnProperty('_errorHandler')) return
-    var errorHandler = this._errorHandler
-    this.bond.break()
-    errorHandler(e)
+    if (this.hasOwnProperty('_errorHandler')) {
+      var errorHandler = this._errorHandler
+      this.bond.break()
+      errorHandler(e)
+    }
+    else {
+      this.bond.break()
+    }
   }
   ,sendDone: function() {
-    if (!this.hasOwnProperty('_doneHandler')) return
-    var doneHandler = this._doneHandler
-    this.bond.break()
-    doneHandler()
+    if (this.hasOwnProperty('_doneHandler')) {
+      var doneHandler = this._doneHandler
+      this.bond.break()
+      doneHandler()
+    }
+    else {
+      this.bond.break()
+    }
   }
 }
 

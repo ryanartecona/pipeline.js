@@ -41,10 +41,10 @@ describe('Pipe', function(){
     })
   })
 
-  it('-concat', function(done){
+  it('-concatWith', function(done){
     var p1 = new Pipe.fromArray([1,2])
     var p2 = new Pipe.fromArray([3])
-    _.assertAccum(p1.concat(p2), [1,2,3], done)
+    _.assertAccum(p1.concatWith(p2), [1,2,3], done)
   })
 
   it('-filter', function(done){
@@ -61,6 +61,32 @@ describe('Pipe', function(){
         return Math.pow(x, 2)
       })
     _.assertAccum(p, [1,4,9,16,25,36], done)
+  })
+
+  it('-mapReplace', function(done) {
+    var p = Pipe.of(1, 2, 3)
+      .mapReplace(10)
+    _.assertAccum(p, [10, 10, 10], done)
+  })
+
+  it('-merge', function(done) {
+    var p = Pipe.fromArray([
+        Pipe.of(1),
+        Pipe.of(2, 2),
+        Pipe.of(3, 3, 3)
+      ])
+      .merge()
+    _.assertAccum(p, [1, 2,2, 3,3,3], done)
+  })
+
+  it('-concat', function(done) {
+    var p = Pipe.fromArray([
+        Pipe.of(1),
+        Pipe.of(2, 2),
+        Pipe.of(3, 3, 3)
+      ])
+      .concat()
+    _.assertAccum(p, [1, 2,2, 3,3,3], done)
   })
 
   it('-skip', function(done){

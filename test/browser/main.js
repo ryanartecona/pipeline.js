@@ -1252,16 +1252,24 @@ Outlet.prototype = {
     this._nextHandler.call(null, v)
   }
   ,sendError: function(e) {
-    if (!this.hasOwnProperty('_errorHandler')) return
-    var errorHandler = this._errorHandler
-    this.bond.break()
-    errorHandler(e)
+    if (this.hasOwnProperty('_errorHandler')) {
+      var errorHandler = this._errorHandler
+      this.bond.break()
+      errorHandler(e)
+    }
+    else {
+      this.bond.break()
+    }
   }
   ,sendDone: function() {
-    if (!this.hasOwnProperty('_doneHandler')) return
-    var doneHandler = this._doneHandler
-    this.bond.break()
-    doneHandler()
+    if (this.hasOwnProperty('_doneHandler')) {
+      var doneHandler = this._doneHandler
+      this.bond.break()
+      doneHandler()
+    }
+    else {
+      this.bond.break()
+    }
   }
 }
 
@@ -1378,6 +1386,8 @@ Pipe.prototype = {
       }
     }
   }
+
+
   ,map: function(mapFn) {
     var upstream = this
     var downstream = new Pipe(function(downstreamOutlet) {
@@ -1393,7 +1403,7 @@ Pipe.prototype = {
   }
 
   // monadic bind
-  ,mbind: function(bindFn) {
+  ,mergeMap: function(bindFn) {
     var upstream = this;
     var downstream = new Pipe(function(downstreamOutlet) {
       var interspersedPipes = []
@@ -1453,7 +1463,76 @@ Pipe.prototype = {
     return downstream
   }
 
-  ,concat: function(nextPipe1, nextPipe2, nextPipeN) {
+  ,merge: function() {
+    return this.mergeMap(function(innerPipe) {
+      return innerPipe
+    })
+  }
+
+  ,concat: function() {
+    var sourcePipe = this
+    var sourcePipeHasFinished = false
+    var pipesToConcat = []
+    var activePipe
+    var receivingOutlet
+
+    var receiveNextPipeToConcat = function(p) {
+      pipesToConcat.push(p)
+      if (typeof activePipe === 'undefined') {
+        attachToNextPipe()
+      }
+      finishConcatPipeIfNecessary()
+    }
+    var attachToNextPipe = function() {
+      if (typeof activePipe !== 'undefined') return
+      var nextPipe = pipesToConcat.shift()
+      activePipe = nextPipe
+      nextPipe.on({
+        bond: function(b) {
+          receivingOutlet.bond.addBond(b)
+        }
+        ,next: function(v) {
+          receivingOutlet.sendNext(v)
+        }
+        ,error: function(e) {
+          receivingOutlet.sendError(e)
+        }
+        ,done: function() {
+          activePipe = undefined
+          finishConcatPipeIfNecessary()
+          if (receivingOutlet.bond.isBroken) return
+          schedulers.schedule(attachToNextPipe)
+        }
+      })
+    }
+    var finishConcatPipeIfNecessary = function() {
+      if ( typeof activePipe === 'undefined'
+        && sourcePipeHasFinished === true
+        && pipesToConcat.length === 0
+        && !receivingOutlet.bond.isBroken)
+      {
+        receivingOutlet.sendDone()
+      }
+    }
+
+    return new Pipe(function (outlet) {
+      receivingOutlet = outlet
+      sourcePipe.on({
+        next: function(innerPipe) {
+          receiveNextPipeToConcat(innerPipe)
+        }
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          sourcePipeHasFinished = true
+          finishConcatPipeIfNecessary()
+        }
+      })
+    })
+  }
+
+  ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
     var firstPipe = this
     var nextPipes = [].slice.call(arguments)
     var concatPipe = new Pipe(function(outlet) {
@@ -1477,12 +1556,18 @@ Pipe.prototype = {
   }  
 
   ,filter: function(predicateFn) {
-    return this.mbind(function(x) {
+    return this.mergeMap(function(x) {
       if (predicateFn(x)) {
         return Pipe.return(x)
       } else {
         return Pipe.empty()
       }
+    })
+  }
+
+  ,mapReplace: function(replacement) {
+    return this.map(function() {
+      return replacement
     })
   }
 
@@ -1518,7 +1603,7 @@ Pipe.prototype = {
   }
 
   ,takeWhile: function(shouldKeepTaking) {
-    return this.mbind(function(x, requestStop) {
+    return this.mergeMap(function(x, requestStop) {
       if (shouldKeepTaking(x)) {
         return Pipe.return(x)
       } else {
@@ -1545,7 +1630,7 @@ Pipe.prototype = {
     })
   }
 
-  ,merge: function(adjacent1, adjacent2, adjacentN) {
+  ,mergeWith: function(adjacent1, adjacent2, adjacentN) {
     var adjacentPipes = [].slice.call(arguments)
     adjacentPipes.unshift(this)
     return new Pipe(function(outlet) {
@@ -2326,10 +2411,10 @@ describe('Pipe', function(){
     })
   })
 
-  it('-concat', function(done){
+  it('-concatWith', function(done){
     var p1 = new Pipe.fromArray([1,2])
     var p2 = new Pipe.fromArray([3])
-    _.assertAccum(p1.concat(p2), [1,2,3], done)
+    _.assertAccum(p1.concatWith(p2), [1,2,3], done)
   })
 
   it('-filter', function(done){
@@ -2346,6 +2431,32 @@ describe('Pipe', function(){
         return Math.pow(x, 2)
       })
     _.assertAccum(p, [1,4,9,16,25,36], done)
+  })
+
+  it('-mapReplace', function(done) {
+    var p = Pipe.of(1, 2, 3)
+      .mapReplace(10)
+    _.assertAccum(p, [10, 10, 10], done)
+  })
+
+  it('-merge', function(done) {
+    var p = Pipe.fromArray([
+        Pipe.of(1),
+        Pipe.of(2, 2),
+        Pipe.of(3, 3, 3)
+      ])
+      .merge()
+    _.assertAccum(p, [1, 2,2, 3,3,3], done)
+  })
+
+  it('-concat', function(done) {
+    var p = Pipe.fromArray([
+        Pipe.of(1),
+        Pipe.of(2, 2),
+        Pipe.of(3, 3, 3)
+      ])
+      .concat()
+    _.assertAccum(p, [1, 2,2, 3,3,3], done)
   })
 
   it('-skip', function(done){
