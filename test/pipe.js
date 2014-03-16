@@ -115,6 +115,11 @@ describe('Pipe', function(){
       })())
     _.assertAccum(pDigits, [4,5,6,7], done)
   })
+  it('-zipWith', function(done) {
+    var nats = Pipe.of(0, 1, 2, 3, 4, 5, 6, 7)
+    var primes = Pipe.of(2, 3, 5, 7)
+    _.assertAccum(nats.zipWith(primes), [[0,2], [1,3], [2,5], [3,7]], done)
+  })
 
   describe('attached outlet', function() {
 

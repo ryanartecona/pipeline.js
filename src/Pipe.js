@@ -378,6 +378,56 @@ Pipe.prototype = {
     })
   }
 
+  ,zipWith: function(adjacent1, adjacent2, adjacentN) {
+    var adjacentPipes = [].slice.call(arguments)
+    adjacentPipes.unshift(this)
+    var numAdjacentPipes = adjacentPipes.length
+
+    return new Pipe(function (outlet) {
+      var hasFinished = new Array(numAdjacentPipes)
+      var nextValues = new Array(numAdjacentPipes)
+      
+      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
+        hasFinished[i] = false
+        nextValues[i] = []
+
+        var sendNextTupleIfNecessary = function(v) {
+          nextValues[i].push(v)
+          for (var j = 0; j < numAdjacentPipes; j++) {
+            if (!nextValues[j].length) return
+          }
+          var tupleToSend = []
+          for (j = 0; j < numAdjacentPipes; j++) {
+            tupleToSend.push(nextValues[j].shift())
+          }
+          outlet.sendNext(tupleToSend)
+          sendDoneIfNecessary()
+        }
+        var sendDoneIfNecessary = function() {
+          for (var j = 0; j < numAdjacentPipes; j++) {
+            if (hasFinished[j] && !nextValues[j].length) {
+              outlet.sendDone()
+            }
+          }
+        }
+
+        adjacentPipes[i].on({
+          bond: function(b) {
+            outlet.bond.addBond(b)
+          }
+          ,next: sendNextTupleIfNecessary
+          ,error: function(e) {
+            outlet.sendError()
+          }
+          ,done: function() {
+            hasFinished[i] = true
+            sendDoneIfNecessary()
+          }
+        })
+      })(i)}
+    })
+  }
+
   ,deliverOn: function(scheduler) {
     var thisP = this
     return new Pipe(function(outlet) {
