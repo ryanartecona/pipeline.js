@@ -1403,7 +1403,7 @@ Pipe.prototype = {
   }
 
   // monadic bind
-  ,mergeMap: function(bindFn) {
+  ,mergeMap: function(mapFn) {
     var upstream = this;
     var downstream = new Pipe(function(downstreamOutlet) {
       var interspersedPipes = []
@@ -1443,7 +1443,7 @@ Pipe.prototype = {
             var requestStop = function() {
               should_stop = true
             }
-            var x_transformed = bindFn(x_original, requestStop)
+            var x_transformed = mapFn(x_original, requestStop)
             if (typeof x_transformed != 'undefined' && !should_stop) {
               assert(x_transformed instanceof Pipe)
               addNewPipe(x_transformed)
@@ -1530,6 +1530,10 @@ Pipe.prototype = {
         }
       })
     })
+  }
+
+  ,concatMap: function(mapFn) {
+    return this.map(mapFn).concat()
   }
 
   ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
@@ -1704,6 +1708,28 @@ Pipe.prototype = {
           }
         })
       })(i)}
+    })
+  }
+
+  ,scan: function(seed, reduceFn) {
+    var acc = seed
+    return this.map(function(v) {
+      return (acc = reduceFn(acc, v))
+    })
+  }
+
+  ,scan1: function(reduceFn) {
+    var acc
+    var hasReceivedFirstVal = false
+    return this.concatMap(function(v) {
+      if (hasReceivedFirstVal) {
+        return Pipe.return(acc = reduceFn(acc, v))
+      }
+      else {
+        hasReceivedFirstVal = true
+        acc = v
+        return Pipe.empty()
+      }
     })
   }
 
@@ -2540,6 +2566,20 @@ describe('Pipe', function(){
     var primes = Pipe.of(2, 3, 5, 7)
     _.assertAccum(nats.zipWith(primes), [[0,2], [1,3], [2,5], [3,7]], done)
   })
+  it('-scan', function(done) {
+    var p = Pipe.of(1, -1, 2, -2, 10)
+    var runningSum = p.scan(0, function(sum, v) {
+      return sum + v
+    })
+    _.assertAccum(runningSum, [1, 0, 2, 0, 10], done)
+  })
+  it('-scan1', function(done) {
+    var p = Pipe.of(1, -1, 2, -2, 10)
+    var runningSum = p.scan1(function(sum, v) {
+      return sum + v
+    })
+    _.assertAccum(runningSum, [0, 2, 0, 10], done)
+  })
 
   describe('attached outlet', function() {
 
@@ -2703,7 +2743,13 @@ var assertAccum = function(p, expectedValues, done){
     next: accumulate
     ,error: done
     ,done: function(){
-      assert.deepEqual(expectedValues, accumValues)
+      try {
+        assert.deepEqual(expectedValues, accumValues)
+      }
+      catch (e) {
+        done(e)
+        return
+      }
       done()
     }
   })

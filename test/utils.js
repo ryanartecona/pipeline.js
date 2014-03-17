@@ -10,7 +10,13 @@ var assertAccum = function(p, expectedValues, done){
     next: accumulate
     ,error: done
     ,done: function(){
-      assert.deepEqual(expectedValues, accumValues)
+      try {
+        assert.deepEqual(expectedValues, accumValues)
+      }
+      catch (e) {
+        done(e)
+        return
+      }
       done()
     }
   })

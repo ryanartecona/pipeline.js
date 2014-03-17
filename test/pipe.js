@@ -120,6 +120,20 @@ describe('Pipe', function(){
     var primes = Pipe.of(2, 3, 5, 7)
     _.assertAccum(nats.zipWith(primes), [[0,2], [1,3], [2,5], [3,7]], done)
   })
+  it('-scan', function(done) {
+    var p = Pipe.of(1, -1, 2, -2, 10)
+    var runningSum = p.scan(0, function(sum, v) {
+      return sum + v
+    })
+    _.assertAccum(runningSum, [1, 0, 2, 0, 10], done)
+  })
+  it('-scan1', function(done) {
+    var p = Pipe.of(1, -1, 2, -2, 10)
+    var runningSum = p.scan1(function(sum, v) {
+      return sum + v
+    })
+    _.assertAccum(runningSum, [0, 2, 0, 10], done)
+  })
 
   describe('attached outlet', function() {
 

@@ -124,7 +124,7 @@ Pipe.prototype = {
   }
 
   // monadic bind
-  ,mergeMap: function(bindFn) {
+  ,mergeMap: function(mapFn) {
     var upstream = this;
     var downstream = new Pipe(function(downstreamOutlet) {
       var interspersedPipes = []
@@ -164,7 +164,7 @@ Pipe.prototype = {
             var requestStop = function() {
               should_stop = true
             }
-            var x_transformed = bindFn(x_original, requestStop)
+            var x_transformed = mapFn(x_original, requestStop)
             if (typeof x_transformed != 'undefined' && !should_stop) {
               assert(x_transformed instanceof Pipe)
               addNewPipe(x_transformed)
@@ -251,6 +251,10 @@ Pipe.prototype = {
         }
       })
     })
+  }
+
+  ,concatMap: function(mapFn) {
+    return this.map(mapFn).concat()
   }
 
   ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
@@ -425,6 +429,28 @@ Pipe.prototype = {
           }
         })
       })(i)}
+    })
+  }
+
+  ,scan: function(seed, reduceFn) {
+    var acc = seed
+    return this.map(function(v) {
+      return (acc = reduceFn(acc, v))
+    })
+  }
+
+  ,scan1: function(reduceFn) {
+    var acc
+    var hasReceivedFirstVal = false
+    return this.concatMap(function(v) {
+      if (hasReceivedFirstVal) {
+        return Pipe.return(acc = reduceFn(acc, v))
+      }
+      else {
+        hasReceivedFirstVal = true
+        acc = v
+        return Pipe.empty()
+      }
     })
   }
 
