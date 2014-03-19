@@ -1733,6 +1733,49 @@ Pipe.prototype = {
     })
   }
 
+  ,combineLatestWith: function(otherPipe) {
+    var pipesToCombine = [].slice.call(arguments)
+    pipesToCombine.unshift(this)
+    var numPipesToCombine = pipesToCombine.length
+
+
+    return new Pipe(function(outlet) {
+      var recentValues = new Array(numPipesToCombine)
+      var hasSentFirst = new Array(numPipesToCombine)
+      var hasFinished = new Array(numPipesToCombine)
+
+      for (var i = 0; i < numPipesToCombine; i++) {(function(i) {
+        recentValues[i] = undefined
+        hasSentFirst[i] = false
+        hasFinished[i] = false
+
+        pipesToCombine[i].on({
+          bond: function(b) {
+            outlet.bond.addBond(b)
+          }
+          ,next: function(v) {
+            if (!hasSentFirst[i]) hasSentFirst[i] = true
+            recentValues[i] = v
+            for (var j = 0; j < numPipesToCombine; j++) {
+              if (!hasSentFirst[j]) return
+            }
+            outlet.sendNext(recentValues.slice())
+          }
+          ,error: function(e) {
+            outlet.sendError(e)
+          }
+          ,done: function() {
+            hasFinished[i] = true
+            for (var j = 0; j < numPipesToCombine; j++) {
+              if (!hasFinished[j]) return
+            }
+            outlet.sendDone()
+          }
+        })
+      })(i)}
+    })
+  }
+
   ,deliverOn: function(scheduler) {
     var thisP = this
     return new Pipe(function(outlet) {
@@ -2579,6 +2622,32 @@ describe('Pipe', function(){
       return sum + v
     })
     _.assertAccum(runningSum, [0, 2, 0, 10], done)
+  })
+  it('-combineLatestWith', function(done) {
+    var evens = new PL.Inlet()
+    var odds = new PL.Inlet()
+
+    _.assertAccum(
+      evens.combineLatestWith(odds),
+      [
+        [2, 1],
+        [2, 3],
+        [4, 3],
+        [6, 3]
+      ],
+      done
+    )
+
+    PL.schedule(function() {
+      evens.sendNext(0)
+      evens.sendNext(2)
+      odds.sendNext(1)
+      odds.sendNext(3)
+      evens.sendNext(4)
+      odds.sendDone()
+      evens.sendNext(6)
+      evens.sendDone()
+    })
   })
 
   describe('attached outlet', function() {

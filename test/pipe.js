@@ -134,6 +134,32 @@ describe('Pipe', function(){
     })
     _.assertAccum(runningSum, [0, 2, 0, 10], done)
   })
+  it('-combineLatestWith', function(done) {
+    var evens = new PL.Inlet()
+    var odds = new PL.Inlet()
+
+    _.assertAccum(
+      evens.combineLatestWith(odds),
+      [
+        [2, 1],
+        [2, 3],
+        [4, 3],
+        [6, 3]
+      ],
+      done
+    )
+
+    PL.schedule(function() {
+      evens.sendNext(0)
+      evens.sendNext(2)
+      odds.sendNext(1)
+      odds.sendNext(3)
+      evens.sendNext(4)
+      odds.sendDone()
+      evens.sendNext(6)
+      evens.sendDone()
+    })
+  })
 
   describe('attached outlet', function() {
 
