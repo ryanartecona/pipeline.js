@@ -161,6 +161,45 @@ describe('Pipe', function(){
     })
   })
 
+  it('-not', function(done) {
+    var p = PL.Pipe.fromArray([0,    1,     false, "true", null, {t:1}])
+    _.assertAccum(p.not(),    [true, false, true,  false,  true, false], done)
+  })
+  it('-and', function(done) {
+    var p1 = new PL.Inlet()
+    var p2 = new PL.Inlet()
+
+    _.assertAccum(p1.and(p2), [true, false, false, false, true], done)
+
+    PL.schedule(function() {
+      p1.sendNext(true)
+      p2.sendNext(true)
+      p1.sendNext(false)
+      p2.sendNext(false)
+      p1.sendNext(1)
+      p2.sendNext(1)
+      p1.sendDone()
+      p2.sendDone()
+    })
+  })
+  it('-or', function(done) {
+    var p1 = new PL.Inlet()
+    var p2 = new PL.Inlet()
+
+    _.assertAccum(p1.or(p2), [true, true, false, true, true], done)
+
+    PL.schedule(function() {
+      p1.sendNext(true)
+      p2.sendNext(true)
+      p1.sendNext(false)
+      p2.sendNext(false)
+      p1.sendNext(1)
+      p2.sendNext(1)
+      p1.sendDone()
+      p2.sendDone()      
+    })
+  })
+
   describe('attached outlet', function() {
 
     it('receives an error', function(done) {

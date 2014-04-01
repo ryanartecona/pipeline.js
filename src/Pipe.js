@@ -507,6 +507,22 @@ Pipe.prototype = {
     })
   }
 
+  ,not: function() {
+    return this.map(function(x) {
+      return !x
+    })
+  }
+  ,and: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] && !!xs[1]
+    })
+  }
+  ,or: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] || !!xs[1]
+    })
+  }
+
   ,deliverOn: function(scheduler) {
     var thisP = this
     return new Pipe(function(outlet) {

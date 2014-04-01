@@ -1335,7 +1335,7 @@ Pipe.prototype = {
 
     var thisP = this
 
-    schedulers.schedule(function() {
+    schedulers.scheduleEager(function() {
       if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
         var innerBond = thisP.onAttach(outlet)
@@ -1390,16 +1390,22 @@ Pipe.prototype = {
 
   ,map: function(mapFn) {
     var upstream = this
-    var downstream = new Pipe(function(downstreamOutlet) {
+    return new Pipe(function(outlet) {
       upstream.on({
-        next: function(x) {
-          downstreamOutlet.sendNext(mapFn(x))
+        bond: function(b) {
+          outlet.bond.addBond(b)
         }
-        ,error: function(e) {downstreamOutlet.sendError(e)}
-        ,done: function() {downstreamOutlet.sendDone()}
+        ,next: function(x) {
+          outlet.sendNext(mapFn(x))
+        }
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          outlet.sendDone()
+        }
       })
     })
-    return downstream
   }
 
   // monadic bind
@@ -1479,12 +1485,13 @@ Pipe.prototype = {
     var receiveNextPipeToConcat = function(p) {
       pipesToConcat.push(p)
       if (typeof activePipe === 'undefined') {
-        attachToNextPipe()
+        attachToNextPipeIfNecessary()
       }
       finishConcatPipeIfNecessary()
     }
-    var attachToNextPipe = function() {
+    var attachToNextPipeIfNecessary = function() {
       if (typeof activePipe !== 'undefined') return
+      if (!pipesToConcat.length) return
       var nextPipe = pipesToConcat.shift()
       activePipe = nextPipe
       nextPipe.on({
@@ -1501,7 +1508,7 @@ Pipe.prototype = {
           activePipe = undefined
           finishConcatPipeIfNecessary()
           if (receivingOutlet.bond.isBroken) return
-          schedulers.schedule(attachToNextPipe)
+          attachToNextPipeIfNecessary()
         }
       })
     }
@@ -1670,9 +1677,12 @@ Pipe.prototype = {
       var hasFinished = new Array(numAdjacentPipes)
       var nextValues = new Array(numAdjacentPipes)
       
-      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
+      for (var i = 0; i < numAdjacentPipes; i++) {
         hasFinished[i] = false
         nextValues[i] = []
+      }
+
+      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
 
         var sendNextTupleIfNecessary = function(v) {
           nextValues[i].push(v)
@@ -1773,6 +1783,22 @@ Pipe.prototype = {
           }
         })
       })(i)}
+    })
+  }
+
+  ,not: function() {
+    return this.map(function(x) {
+      return !x
+    })
+  }
+  ,and: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] && !!xs[1]
+    })
+  }
+  ,or: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] || !!xs[1]
     })
   }
 
@@ -2088,6 +2114,10 @@ var schedule = function(jobFn) {
   currentScheduler().schedule(jobFn)
 }
 
+var scheduleEager = function(jobFn) {
+  currentScheduler().scheduleEager(jobFn)
+}
+
 var withCurrentScheduler = function(scheduler, jobFn) {
   if (_current === scheduler) {
     jobFn()
@@ -2109,6 +2139,9 @@ var SyncScheduler = {
   schedule: function(userFn) {
     userFn()
   }
+  ,scheduleEager: function(userFn) {
+    userFn()
+  }
 }
 
 var AsyncScheduler = (function() {
@@ -2121,9 +2154,7 @@ var AsyncScheduler = (function() {
       _is_currently_processing_queue = true
       while(_queue.length) {
         var job = _queue.shift()
-        try {
-          job()
-        } catch (e) {}
+        _do_user_job(job)
       }
       _is_currently_processing_queue = false
       _queue_processor_is_scheduled = false
@@ -2133,6 +2164,15 @@ var AsyncScheduler = (function() {
     if (_queue_processor_is_scheduled) return
     _schedule_later(_drain_queue)
     _queue_processor_is_scheduled = true
+  }
+  var _do_user_job = function(jobFn) {
+    try {
+      jobFn()
+    }
+    catch (e) {
+      // TODO: configurable async error handling
+      console.log(e.stack)
+    }
   }
 
   // TODO: 
@@ -2172,11 +2212,21 @@ var AsyncScheduler = (function() {
       _queue.push(jobFn)
       _drain_queue_later()
     }
+    ,scheduleEager: function(jobFn) {
+      if (_is_currently_processing_queue) {
+        _do_user_job(jobFn)
+      }
+      else {
+        _queue.push(jobFn)
+        _drain_queue_later()
+      }
+    }
   }
 })()
 
 module.exports = {
   schedule: schedule
+  ,scheduleEager: scheduleEager
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
@@ -2650,6 +2700,45 @@ describe('Pipe', function(){
     })
   })
 
+  it('-not', function(done) {
+    var p = PL.Pipe.fromArray([0,    1,     false, "true", null, {t:1}])
+    _.assertAccum(p.not(),    [true, false, true,  false,  true, false], done)
+  })
+  it('-and', function(done) {
+    var p1 = new PL.Inlet()
+    var p2 = new PL.Inlet()
+
+    _.assertAccum(p1.and(p2), [true, false, false, false, true], done)
+
+    PL.schedule(function() {
+      p1.sendNext(true)
+      p2.sendNext(true)
+      p1.sendNext(false)
+      p2.sendNext(false)
+      p1.sendNext(1)
+      p2.sendNext(1)
+      p1.sendDone()
+      p2.sendDone()
+    })
+  })
+  it('-or', function(done) {
+    var p1 = new PL.Inlet()
+    var p2 = new PL.Inlet()
+
+    _.assertAccum(p1.or(p2), [true, true, false, true, true], done)
+
+    PL.schedule(function() {
+      p1.sendNext(true)
+      p2.sendNext(true)
+      p1.sendNext(false)
+      p2.sendNext(false)
+      p1.sendNext(1)
+      p2.sendNext(1)
+      p1.sendDone()
+      p2.sendDone()      
+    })
+  })
+
   describe('attached outlet', function() {
 
     it('receives an error', function(done) {
@@ -2808,20 +2897,25 @@ var assertAccum = function(p, expectedValues, done){
   var accumulate = function(v){
     accumValues.push(v)
   }
-  p.on({
-    next: accumulate
-    ,error: done
-    ,done: function(){
-      try {
-        assert.deepEqual(expectedValues, accumValues)
+  try {
+    p.on({
+      next: accumulate
+      ,error: done
+      ,done: function(){
+        try {
+          assert.deepEqual(expectedValues, accumValues)
+        }
+        catch (e) {
+          done(e)
+          return
+        }
+        done()
       }
-      catch (e) {
-        done(e)
-        return
-      }
-      done()
-    }
-  })
+    })
+  }
+  catch (e) {
+    done(e)
+  }
 }
 
 
