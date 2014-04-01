@@ -56,7 +56,7 @@ Pipe.prototype = {
 
     var thisP = this
 
-    schedulers.schedule(function() {
+    schedulers.scheduleEager(function() {
       if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
         var innerBond = thisP.onAttach(outlet)
@@ -111,16 +111,22 @@ Pipe.prototype = {
 
   ,map: function(mapFn) {
     var upstream = this
-    var downstream = new Pipe(function(downstreamOutlet) {
+    return new Pipe(function(outlet) {
       upstream.on({
-        next: function(x) {
-          downstreamOutlet.sendNext(mapFn(x))
+        bond: function(b) {
+          outlet.bond.addBond(b)
         }
-        ,error: function(e) {downstreamOutlet.sendError(e)}
-        ,done: function() {downstreamOutlet.sendDone()}
+        ,next: function(x) {
+          outlet.sendNext(mapFn(x))
+        }
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          outlet.sendDone()
+        }
       })
     })
-    return downstream
   }
 
   // monadic bind
@@ -200,12 +206,13 @@ Pipe.prototype = {
     var receiveNextPipeToConcat = function(p) {
       pipesToConcat.push(p)
       if (typeof activePipe === 'undefined') {
-        attachToNextPipe()
+        attachToNextPipeIfNecessary()
       }
       finishConcatPipeIfNecessary()
     }
-    var attachToNextPipe = function() {
+    var attachToNextPipeIfNecessary = function() {
       if (typeof activePipe !== 'undefined') return
+      if (!pipesToConcat.length) return
       var nextPipe = pipesToConcat.shift()
       activePipe = nextPipe
       nextPipe.on({
@@ -222,7 +229,7 @@ Pipe.prototype = {
           activePipe = undefined
           finishConcatPipeIfNecessary()
           if (receivingOutlet.bond.isBroken) return
-          schedulers.schedule(attachToNextPipe)
+          attachToNextPipeIfNecessary()
         }
       })
     }
@@ -391,9 +398,12 @@ Pipe.prototype = {
       var hasFinished = new Array(numAdjacentPipes)
       var nextValues = new Array(numAdjacentPipes)
       
-      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
+      for (var i = 0; i < numAdjacentPipes; i++) {
         hasFinished[i] = false
         nextValues[i] = []
+      }
+
+      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
 
         var sendNextTupleIfNecessary = function(v) {
           nextValues[i].push(v)
