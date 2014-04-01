@@ -1802,6 +1802,32 @@ Pipe.prototype = {
     })
   }
 
+  ,filterAdjacent: function(comparingFn) {
+    return this.filter((function() {
+
+      var hasSentFirstValue = false
+      var previousValue
+
+      return function(x) {
+        if (!hasSentFirstValue) {
+          hasSentFirstValue = true
+          previousValue = x
+          return true
+        }
+        else if (comparingFn(previousValue, x)) {
+          previousValue = x
+          return true
+        }
+        return false
+      }
+    })())
+  }
+  ,dedupe: function() {
+    return this.filterAdjacent(function(prev, current) {
+      return prev !== current
+    })
+  }
+
   ,deliverOn: function(scheduler) {
     var thisP = this
     return new Pipe(function(outlet) {
@@ -2737,6 +2763,19 @@ describe('Pipe', function(){
       p1.sendDone()
       p2.sendDone()      
     })
+  })
+
+  it('-filterAdjacent', function(done) {
+    var p = PL.Pipe.of({x:1}, {x:2}, {x:2}, {x:3})
+      .filterAdjacent(function(prev, current) {
+        return prev.x !== current.x
+      })
+
+    _.assertAccum(p, [{x:1}, {x:2}, {x:3}], done)
+  })
+  it('-dedupe', function(done) {
+    var p = PL.Pipe.of(1, 2, 2, 3).dedupe()
+    _.assertAccum(p, [1, 2, 3], done)
   })
 
   describe('attached outlet', function() {

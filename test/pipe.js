@@ -200,6 +200,19 @@ describe('Pipe', function(){
     })
   })
 
+  it('-filterAdjacent', function(done) {
+    var p = PL.Pipe.of({x:1}, {x:2}, {x:2}, {x:3})
+      .filterAdjacent(function(prev, current) {
+        return prev.x !== current.x
+      })
+
+    _.assertAccum(p, [{x:1}, {x:2}, {x:3}], done)
+  })
+  it('-dedupe', function(done) {
+    var p = PL.Pipe.of(1, 2, 2, 3).dedupe()
+    _.assertAccum(p, [1, 2, 3], done)
+  })
+
   describe('attached outlet', function() {
 
     it('receives an error', function(done) {

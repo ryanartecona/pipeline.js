@@ -523,6 +523,32 @@ Pipe.prototype = {
     })
   }
 
+  ,filterAdjacent: function(comparingFn) {
+    return this.filter((function() {
+
+      var hasSentFirstValue = false
+      var previousValue
+
+      return function(x) {
+        if (!hasSentFirstValue) {
+          hasSentFirstValue = true
+          previousValue = x
+          return true
+        }
+        else if (comparingFn(previousValue, x)) {
+          previousValue = x
+          return true
+        }
+        return false
+      }
+    })())
+  }
+  ,dedupe: function() {
+    return this.filterAdjacent(function(prev, current) {
+      return prev !== current
+    })
+  }
+
   ,deliverOn: function(scheduler) {
     var thisP = this
     return new Pipe(function(outlet) {
