@@ -25,6 +25,10 @@ var schedule = function(jobFn) {
   currentScheduler().schedule(jobFn)
 }
 
+var scheduleEager = function(jobFn) {
+  currentScheduler().scheduleEager(jobFn)
+}
+
 var withCurrentScheduler = function(scheduler, jobFn) {
   if (_current === scheduler) {
     jobFn()
@@ -46,6 +50,9 @@ var SyncScheduler = {
   schedule: function(userFn) {
     userFn()
   }
+  ,scheduleEager: function(userFn) {
+    userFn()
+  }
 }
 
 var AsyncScheduler = (function() {
@@ -58,9 +65,7 @@ var AsyncScheduler = (function() {
       _is_currently_processing_queue = true
       while(_queue.length) {
         var job = _queue.shift()
-        try {
-          job()
-        } catch (e) {}
+        _do_user_job(job)
       }
       _is_currently_processing_queue = false
       _queue_processor_is_scheduled = false
@@ -70,6 +75,15 @@ var AsyncScheduler = (function() {
     if (_queue_processor_is_scheduled) return
     _schedule_later(_drain_queue)
     _queue_processor_is_scheduled = true
+  }
+  var _do_user_job = function(jobFn) {
+    try {
+      jobFn()
+    }
+    catch (e) {
+      // TODO: configurable async error handling
+      console.log(e.stack)
+    }
   }
 
   // TODO: 
@@ -109,11 +123,21 @@ var AsyncScheduler = (function() {
       _queue.push(jobFn)
       _drain_queue_later()
     }
+    ,scheduleEager: function(jobFn) {
+      if (_is_currently_processing_queue) {
+        _do_user_job(jobFn)
+      }
+      else {
+        _queue.push(jobFn)
+        _drain_queue_later()
+      }
+    }
   }
 })()
 
 module.exports = {
   schedule: schedule
+  ,scheduleEager: scheduleEager
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler
