@@ -6,20 +6,25 @@ var assertAccum = function(p, expectedValues, done){
   var accumulate = function(v){
     accumValues.push(v)
   }
-  p.on({
-    next: accumulate
-    ,error: done
-    ,done: function(){
-      try {
-        assert.deepEqual(expectedValues, accumValues)
+  try {
+    p.on({
+      next: accumulate
+      ,error: done
+      ,done: function(){
+        try {
+          assert.deepEqual(expectedValues, accumValues)
+        }
+        catch (e) {
+          done(e)
+          return
+        }
+        done()
       }
-      catch (e) {
-        done(e)
-        return
-      }
-      done()
-    }
-  })
+    })
+  }
+  catch (e) {
+    done(e)
+  }
 }
 
 
