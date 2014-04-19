@@ -94,15 +94,17 @@ describe('Pipe', function(){
       .skip(5)
     _.assertAccum(pDigits, [5,6,7,8,9], done)
   })
+
   it('-take', function(done){
     var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .take(5)
     _.assertAccum(pDigits, [0,1,2,3,4], done)
   })
-  it('-takeUntil', function(done){
+
+  it('-takeWhile', function(done){
     var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .skip(4)
-      .takeUntil((function() {
+      .takeWhile((function() {
         var initialVal;
         // runs until it encounters a value
         // at least 2x the initial value encountered
@@ -110,16 +112,33 @@ describe('Pipe', function(){
           if (typeof initialVal === 'undefined') {
             initialVal = x
           }
-          return x >= (2 * initialVal)
+          return x < (2 * initialVal)
         }
       })())
     _.assertAccum(pDigits, [4,5,6,7], done)
   })
+
+  it('-takeUntilNext', function(done) {
+    var main = new PL.Inlet()
+    var stop = new PL.Inlet()
+
+    _.assertAccum(main.takeUntilNext(stop), [1, 2], done)
+
+    PL.schedule(function() {
+      main.sendNext(1)
+      main.sendNext(2)
+      stop.sendNext(true)
+      main.sendNext(3)
+      main.sendDone()
+    })
+  })
+
   it('-zipWith', function(done) {
     var nats = Pipe.of(0, 1, 2, 3, 4, 5, 6, 7)
     var primes = Pipe.of(2, 3, 5, 7)
     _.assertAccum(nats.zipWith(primes), [[0,2], [1,3], [2,5], [3,7]], done)
   })
+
   it('-scan', function(done) {
     var p = Pipe.of(1, -1, 2, -2, 10)
     var runningSum = p.scan(0, function(sum, v) {
@@ -127,6 +146,7 @@ describe('Pipe', function(){
     })
     _.assertAccum(runningSum, [1, 0, 2, 0, 10], done)
   })
+
   it('-scan1', function(done) {
     var p = Pipe.of(1, -1, 2, -2, 10)
     var runningSum = p.scan1(function(sum, v) {
@@ -134,6 +154,7 @@ describe('Pipe', function(){
     })
     _.assertAccum(runningSum, [0, 2, 0, 10], done)
   })
+
   it('-combineLatestWith', function(done) {
     var evens = new PL.Inlet()
     var odds = new PL.Inlet()
@@ -165,6 +186,7 @@ describe('Pipe', function(){
     var p = PL.Pipe.fromArray([0,    1,     false, "true", null, {t:1}])
     _.assertAccum(p.not(),    [true, false, true,  false,  true, false], done)
   })
+
   it('-and', function(done) {
     var p1 = new PL.Inlet()
     var p2 = new PL.Inlet()
@@ -182,6 +204,7 @@ describe('Pipe', function(){
       p2.sendDone()
     })
   })
+
   it('-or', function(done) {
     var p1 = new PL.Inlet()
     var p2 = new PL.Inlet()

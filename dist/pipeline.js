@@ -296,7 +296,7 @@ Pipe.prototype = {
 
     var thisP = this
 
-    schedulers.schedule(function() {
+    schedulers.scheduleEager(function() {
       if (outlet.bond.isBroken) return
       if (thisP.onAttach) {
         var innerBond = thisP.onAttach(outlet)
@@ -351,20 +351,26 @@ Pipe.prototype = {
 
   ,map: function(mapFn) {
     var upstream = this
-    var downstream = new Pipe(function(downstreamOutlet) {
+    return new Pipe(function(outlet) {
       upstream.on({
-        next: function(x) {
-          downstreamOutlet.sendNext(mapFn(x))
+        bond: function(b) {
+          outlet.bond.addBond(b)
         }
-        ,error: function(e) {downstreamOutlet.sendError(e)}
-        ,done: function() {downstreamOutlet.sendDone()}
+        ,next: function(x) {
+          outlet.sendNext(mapFn(x))
+        }
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          outlet.sendDone()
+        }
       })
     })
-    return downstream
   }
 
   // monadic bind
-  ,mergeMap: function(bindFn) {
+  ,mergeMap: function(mapFn) {
     var upstream = this;
     var downstream = new Pipe(function(downstreamOutlet) {
       var interspersedPipes = []
@@ -404,7 +410,7 @@ Pipe.prototype = {
             var requestStop = function() {
               should_stop = true
             }
-            var x_transformed = bindFn(x_original, requestStop)
+            var x_transformed = mapFn(x_original, requestStop)
             if (typeof x_transformed != 'undefined' && !should_stop) {
               assert(x_transformed instanceof Pipe)
               addNewPipe(x_transformed)
@@ -440,12 +446,13 @@ Pipe.prototype = {
     var receiveNextPipeToConcat = function(p) {
       pipesToConcat.push(p)
       if (typeof activePipe === 'undefined') {
-        attachToNextPipe()
+        attachToNextPipeIfNecessary()
       }
       finishConcatPipeIfNecessary()
     }
-    var attachToNextPipe = function() {
+    var attachToNextPipeIfNecessary = function() {
       if (typeof activePipe !== 'undefined') return
+      if (!pipesToConcat.length) return
       var nextPipe = pipesToConcat.shift()
       activePipe = nextPipe
       nextPipe.on({
@@ -462,7 +469,7 @@ Pipe.prototype = {
           activePipe = undefined
           finishConcatPipeIfNecessary()
           if (receivingOutlet.bond.isBroken) return
-          schedulers.schedule(attachToNextPipe)
+          attachToNextPipeIfNecessary()
         }
       })
     }
@@ -491,6 +498,10 @@ Pipe.prototype = {
         }
       })
     })
+  }
+
+  ,concatMap: function(mapFn) {
+    return this.map(mapFn).concat()
   }
 
   ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
@@ -574,9 +585,25 @@ Pipe.prototype = {
     })
   }
 
-  ,takeUntil: function(shouldStopTaking) {
-    return this.takeWhile(function(x) {
-      return !shouldStopTaking(x)
+  ,takeUntilNext: function(stopPipe) {
+    var mainPipe = this
+
+    return new Pipe(function(mainOutlet) {
+      var stopOutlet = new Outlet({
+        next: function(v) {
+          mainOutlet.sendDone(v)
+        }
+        ,error: function(e) {
+          mainOutlet.sendError(e)
+        }
+        ,done: function() {
+          mainOutlet.sendDone()
+        }
+      })
+      mainOutlet.bond.addBond(stopOutlet.bond)
+
+      stopPipe.attachOutlet(stopOutlet)
+      mainPipe.attachOutlet(mainOutlet)
     })
   }
 
@@ -615,6 +642,166 @@ Pipe.prototype = {
           })
         })(i)
       }
+    })
+  }
+
+  ,zipWith: function(adjacent1, adjacent2, adjacentN) {
+    var adjacentPipes = [].slice.call(arguments)
+    adjacentPipes.unshift(this)
+    var numAdjacentPipes = adjacentPipes.length
+
+    return new Pipe(function (outlet) {
+      var hasFinished = new Array(numAdjacentPipes)
+      var nextValues = new Array(numAdjacentPipes)
+      
+      for (var i = 0; i < numAdjacentPipes; i++) {
+        hasFinished[i] = false
+        nextValues[i] = []
+      }
+
+      for (var i = 0; i < numAdjacentPipes; i++) {(function(i) {
+
+        var sendNextTupleIfNecessary = function(v) {
+          nextValues[i].push(v)
+          for (var j = 0; j < numAdjacentPipes; j++) {
+            if (!nextValues[j].length) return
+          }
+          var tupleToSend = []
+          for (j = 0; j < numAdjacentPipes; j++) {
+            tupleToSend.push(nextValues[j].shift())
+          }
+          outlet.sendNext(tupleToSend)
+          sendDoneIfNecessary()
+        }
+        var sendDoneIfNecessary = function() {
+          for (var j = 0; j < numAdjacentPipes; j++) {
+            if (hasFinished[j] && !nextValues[j].length) {
+              outlet.sendDone()
+            }
+          }
+        }
+
+        adjacentPipes[i].on({
+          bond: function(b) {
+            outlet.bond.addBond(b)
+          }
+          ,next: sendNextTupleIfNecessary
+          ,error: function(e) {
+            outlet.sendError()
+          }
+          ,done: function() {
+            hasFinished[i] = true
+            sendDoneIfNecessary()
+          }
+        })
+      })(i)}
+    })
+  }
+
+  ,scan: function(seed, reduceFn) {
+    var acc = seed
+    return this.map(function(v) {
+      return (acc = reduceFn(acc, v))
+    })
+  }
+
+  ,scan1: function(reduceFn) {
+    var acc
+    var hasReceivedFirstVal = false
+    return this.concatMap(function(v) {
+      if (hasReceivedFirstVal) {
+        return Pipe.return(acc = reduceFn(acc, v))
+      }
+      else {
+        hasReceivedFirstVal = true
+        acc = v
+        return Pipe.empty()
+      }
+    })
+  }
+
+  ,combineLatestWith: function(otherPipe) {
+    var pipesToCombine = [].slice.call(arguments)
+    pipesToCombine.unshift(this)
+    var numPipesToCombine = pipesToCombine.length
+
+
+    return new Pipe(function(outlet) {
+      var recentValues = new Array(numPipesToCombine)
+      var hasSentFirst = new Array(numPipesToCombine)
+      var hasFinished = new Array(numPipesToCombine)
+
+      for (var i = 0; i < numPipesToCombine; i++) {(function(i) {
+        recentValues[i] = undefined
+        hasSentFirst[i] = false
+        hasFinished[i] = false
+
+        pipesToCombine[i].on({
+          bond: function(b) {
+            outlet.bond.addBond(b)
+          }
+          ,next: function(v) {
+            if (!hasSentFirst[i]) hasSentFirst[i] = true
+            recentValues[i] = v
+            for (var j = 0; j < numPipesToCombine; j++) {
+              if (!hasSentFirst[j]) return
+            }
+            outlet.sendNext(recentValues.slice())
+          }
+          ,error: function(e) {
+            outlet.sendError(e)
+          }
+          ,done: function() {
+            hasFinished[i] = true
+            for (var j = 0; j < numPipesToCombine; j++) {
+              if (!hasFinished[j]) return
+            }
+            outlet.sendDone()
+          }
+        })
+      })(i)}
+    })
+  }
+
+  ,not: function() {
+    return this.map(function(x) {
+      return !x
+    })
+  }
+  ,and: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] && !!xs[1]
+    })
+  }
+  ,or: function(otherPipe) {
+    return this.combineLatestWith(otherPipe).map(function(xs) {
+      return !!xs[0] || !!xs[1]
+    })
+  }
+
+  ,filterAdjacent: function(comparingFn) {
+    return this.filter((function() {
+
+      var hasSentFirstValue = false
+      var previousValue
+
+      return function(x) {
+        if (!hasSentFirstValue) {
+          hasSentFirstValue = true
+          previousValue = x
+          return true
+        }
+        else if (comparingFn(previousValue, x)) {
+          previousValue = x
+          return true
+        }
+        return false
+      }
+    })())
+  }
+  ,dedupe: function() {
+    return this.filterAdjacent(function(prev, current) {
+      return prev !== current
     })
   }
 
@@ -929,6 +1116,10 @@ var schedule = function(jobFn) {
   currentScheduler().schedule(jobFn)
 }
 
+var scheduleEager = function(jobFn) {
+  currentScheduler().scheduleEager(jobFn)
+}
+
 var withCurrentScheduler = function(scheduler, jobFn) {
   if (_current === scheduler) {
     jobFn()
@@ -950,6 +1141,9 @@ var SyncScheduler = {
   schedule: function(userFn) {
     userFn()
   }
+  ,scheduleEager: function(userFn) {
+    userFn()
+  }
 }
 
 var AsyncScheduler = (function() {
@@ -962,9 +1156,7 @@ var AsyncScheduler = (function() {
       _is_currently_processing_queue = true
       while(_queue.length) {
         var job = _queue.shift()
-        try {
-          job()
-        } catch (e) {}
+        _do_user_job(job)
       }
       _is_currently_processing_queue = false
       _queue_processor_is_scheduled = false
@@ -974,6 +1166,15 @@ var AsyncScheduler = (function() {
     if (_queue_processor_is_scheduled) return
     _schedule_later(_drain_queue)
     _queue_processor_is_scheduled = true
+  }
+  var _do_user_job = function(jobFn) {
+    try {
+      jobFn()
+    }
+    catch (e) {
+      // TODO: configurable async error handling
+      console.log(e.stack)
+    }
   }
 
   // TODO: 
@@ -1013,11 +1214,21 @@ var AsyncScheduler = (function() {
       _queue.push(jobFn)
       _drain_queue_later()
     }
+    ,scheduleEager: function(jobFn) {
+      if (_is_currently_processing_queue) {
+        _do_user_job(jobFn)
+      }
+      else {
+        _queue.push(jobFn)
+        _drain_queue_later()
+      }
+    }
   }
 })()
 
 module.exports = {
   schedule: schedule
+  ,scheduleEager: scheduleEager
   ,currentScheduler: currentScheduler
   ,SyncScheduler: SyncScheduler
   ,AsyncScheduler: AsyncScheduler

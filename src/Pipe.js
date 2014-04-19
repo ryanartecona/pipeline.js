@@ -345,9 +345,25 @@ Pipe.prototype = {
     })
   }
 
-  ,takeUntil: function(shouldStopTaking) {
-    return this.takeWhile(function(x) {
-      return !shouldStopTaking(x)
+  ,takeUntilNext: function(stopPipe) {
+    var mainPipe = this
+
+    return new Pipe(function(mainOutlet) {
+      var stopOutlet = new Outlet({
+        next: function(v) {
+          mainOutlet.sendDone(v)
+        }
+        ,error: function(e) {
+          mainOutlet.sendError(e)
+        }
+        ,done: function() {
+          mainOutlet.sendDone()
+        }
+      })
+      mainOutlet.bond.addBond(stopOutlet.bond)
+
+      stopPipe.attachOutlet(stopOutlet)
+      mainPipe.attachOutlet(mainOutlet)
     })
   }
 
