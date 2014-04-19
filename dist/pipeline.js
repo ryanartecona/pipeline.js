@@ -589,8 +589,11 @@ Pipe.prototype = {
     var mainPipe = this
 
     return new Pipe(function(mainOutlet) {
-      var stopOutlet = new Outlet({
-        next: function(v) {
+      stopPipe.on({
+        bond: function(stopBond) {
+          mainOutlet.bond.addBond(stopBond)
+        }
+        ,next: function(v) {
           mainOutlet.sendDone(v)
         }
         ,error: function(e) {
@@ -600,9 +603,7 @@ Pipe.prototype = {
           mainOutlet.sendDone()
         }
       })
-      mainOutlet.bond.addBond(stopOutlet.bond)
 
-      stopPipe.attachOutlet(stopOutlet)
       mainPipe.attachOutlet(mainOutlet)
     })
   }
