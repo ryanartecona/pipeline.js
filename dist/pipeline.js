@@ -263,6 +263,9 @@ Pipe.return = function(x) {
     outlet.sendDone()
   })
 }
+Pipe.never = function() {
+  return new Pipe(function(){})
+}
 Pipe.fromArray = function(arr) {
   return new Pipe(function(outlet) {
     for (var i = 0; i < arr.length; i++) {
