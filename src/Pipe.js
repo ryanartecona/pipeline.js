@@ -260,7 +260,7 @@ Pipe.prototype = {
     })
   }
 
-  ,concatMap: function(mapFn) {
+  ,mapConcat: function(mapFn) {
     return this.map(mapFn).concat()
   }
 
