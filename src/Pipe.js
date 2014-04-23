@@ -130,7 +130,7 @@ Pipe.prototype = {
   }
 
   // monadic bind
-  ,mergeMap: function(mapFn) {
+  ,mapMerge: function(mapFn) {
     var upstream = this;
     var downstream = new Pipe(function(downstreamOutlet) {
       var interspersedPipes = []
@@ -191,7 +191,7 @@ Pipe.prototype = {
   }
 
   ,merge: function() {
-    return this.mergeMap(function(innerPipe) {
+    return this.mapMerge(function(innerPipe) {
       return innerPipe
     })
   }
@@ -288,7 +288,7 @@ Pipe.prototype = {
   }  
 
   ,filter: function(predicateFn) {
-    return this.mergeMap(function(x) {
+    return this.mapMerge(function(x) {
       if (predicateFn(x)) {
         return Pipe.return(x)
       } else {
@@ -335,7 +335,7 @@ Pipe.prototype = {
   }
 
   ,takeWhile: function(shouldKeepTaking) {
-    return this.mergeMap(function(x, requestStop) {
+    return this.mapMerge(function(x, requestStop) {
       if (shouldKeepTaking(x)) {
         return Pipe.return(x)
       } else {
