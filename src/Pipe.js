@@ -469,7 +469,7 @@ Pipe.prototype = {
   ,scan1: function(reduceFn) {
     var acc
     var hasReceivedFirstVal = false
-    return this.concatMap(function(v) {
+    return this.mapConcat(function(v) {
       if (hasReceivedFirstVal) {
         return Pipe.return(acc = reduceFn(acc, v))
       }
