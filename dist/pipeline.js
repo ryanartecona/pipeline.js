@@ -507,6 +507,69 @@ Pipe.prototype = {
     return this.map(mapFn).concat()
   }
 
+  ,takeFromLatest: function() {
+    var sourcePipe = this
+
+    return new Pipe(function(outlet) {
+      var currentInnerBond = null
+      var sourcePipeHasFinished = false
+
+      function didReceiveNewInnerPipe(newInnerPipe) {
+        breakCurrentBondIfNecessary()
+
+        newInnerPipe.on({
+          bond: function(b) {
+            breakCurrentBondIfNecessary()
+            currentInnerBond = b
+          }
+          ,next: function(v) {
+            outlet.sendNext(v)
+          }
+          ,error: function(e) {
+            outlet.sendError(e)
+          }
+          ,done: function() {
+            currentInnerBond = null
+            sendDoneIfNecessary()
+          }
+        })
+      }
+
+      function breakCurrentBondIfNecessary() {
+        if (currentInnerBond !== null) {
+          currentInnerBond.break()
+          currentInnerBond = null
+        }
+      }
+
+      function sendDoneIfNecessary() {
+        if (sourcePipeHasFinished && currentInnerBond === null) {
+          outlet.sendDone()
+        }
+      }
+
+      outlet.bond.addBond(new Bond(breakCurrentBondIfNecessary))
+
+      sourcePipe.on({
+        bond: function(b) {
+          outlet.bond.addBond(b)
+        }
+        ,next: didReceiveNewInnerPipe
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          sourcePipeHasFinished = true
+          sendDoneIfNecessary()
+        }
+      })
+    })
+  }
+
+  ,mapTakingFromLatest: function(mapFn) {
+    return this.map(mapFn).takeFromLatest()
+  }
+
   ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
     var firstPipe = this
     var nextPipes = [].slice.call(arguments)

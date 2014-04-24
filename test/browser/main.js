@@ -1546,6 +1546,69 @@ Pipe.prototype = {
     return this.map(mapFn).concat()
   }
 
+  ,takeFromLatest: function() {
+    var sourcePipe = this
+
+    return new Pipe(function(outlet) {
+      var currentInnerBond = null
+      var sourcePipeHasFinished = false
+
+      function didReceiveNewInnerPipe(newInnerPipe) {
+        breakCurrentBondIfNecessary()
+
+        newInnerPipe.on({
+          bond: function(b) {
+            breakCurrentBondIfNecessary()
+            currentInnerBond = b
+          }
+          ,next: function(v) {
+            outlet.sendNext(v)
+          }
+          ,error: function(e) {
+            outlet.sendError(e)
+          }
+          ,done: function() {
+            currentInnerBond = null
+            sendDoneIfNecessary()
+          }
+        })
+      }
+
+      function breakCurrentBondIfNecessary() {
+        if (currentInnerBond !== null) {
+          currentInnerBond.break()
+          currentInnerBond = null
+        }
+      }
+
+      function sendDoneIfNecessary() {
+        if (sourcePipeHasFinished && currentInnerBond === null) {
+          outlet.sendDone()
+        }
+      }
+
+      outlet.bond.addBond(new Bond(breakCurrentBondIfNecessary))
+
+      sourcePipe.on({
+        bond: function(b) {
+          outlet.bond.addBond(b)
+        }
+        ,next: didReceiveNewInnerPipe
+        ,error: function(e) {
+          outlet.sendError(e)
+        }
+        ,done: function() {
+          sourcePipeHasFinished = true
+          sendDoneIfNecessary()
+        }
+      })
+    })
+  }
+
+  ,mapTakingFromLatest: function(mapFn) {
+    return this.map(mapFn).takeFromLatest()
+  }
+
   ,concatWith: function(nextPipe1, nextPipe2, nextPipeN) {
     var firstPipe = this
     var nextPipes = [].slice.call(arguments)
@@ -2672,6 +2735,28 @@ describe('Pipe', function(){
       ])
       .concat()
     _.assertAccum(p, [1, 2,2, 3,3,3], done)
+  })
+
+  it('-takeFromLatest', function(done) {
+    var source = new PL.Inlet()
+    var inner1 = new PL.Inlet()
+    var inner2 = new PL.Inlet()
+    var inner3 = new PL.Inlet()
+
+    _.assertAccum(source.takeFromLatest(), [1, 2, 3], done)
+
+    PL.schedule(function() {
+      source.sendNext(inner1)
+      inner1.sendNext(1)
+      inner1.sendDone()
+      source.sendNext(inner2)
+      inner2.sendNext(2)
+      source.sendNext(inner3)
+      inner2.sendNext('late')
+      source.sendDone()
+      inner3.sendNext(3)
+      inner3.sendDone()
+    })
   })
 
   it('-skip', function(done){

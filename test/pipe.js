@@ -89,6 +89,28 @@ describe('Pipe', function(){
     _.assertAccum(p, [1, 2,2, 3,3,3], done)
   })
 
+  it('-takeFromLatest', function(done) {
+    var source = new PL.Inlet()
+    var inner1 = new PL.Inlet()
+    var inner2 = new PL.Inlet()
+    var inner3 = new PL.Inlet()
+
+    _.assertAccum(source.takeFromLatest(), [1, 2, 3], done)
+
+    PL.schedule(function() {
+      source.sendNext(inner1)
+      inner1.sendNext(1)
+      inner1.sendDone()
+      source.sendNext(inner2)
+      inner2.sendNext(2)
+      source.sendNext(inner3)
+      inner2.sendNext('late')
+      source.sendDone()
+      inner3.sendNext(3)
+      inner3.sendDone()
+    })
+  })
+
   it('-skip', function(done){
     var pDigits = Pipe.fromArray([0,1,2,3,4,5,6,7,8,9])
       .skip(5)
